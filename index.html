@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agenda - Cuartel</title>
 
-  <!-- Tipografía moderna -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -18,6 +17,7 @@
     <div class="topbar-inner">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true">BV</div>
+
         <div class="brand-text">
           <h1>AGENDA</h1>
           <p>Interna del cuartel</p>
@@ -25,35 +25,50 @@
       </div>
     </div>
 
-    <!-- corte con doble línea azul -->
     <div class="divider-double" aria-hidden="true"></div>
   </header>
 
   <main class="app">
-    <!-- Navegación por secciones -->
     <nav class="sections" aria-label="Secciones de la agenda">
-      <button class="section-btn active" data-section="apoyo" type="button">Servicios de apoyo</button>
-      <button class="section-btn" data-section="delegados" type="button">Delegados</button>
-      <button class="section-btn" data-section="cuerpos" type="button">Cuerpos de Bomberos</button>
-      <button class="section-btn" data-section="activo" type="button">Cuerpo Activo</button>
-      <button class="section-btn" data-section="comision" type="button">Comisión Directiva</button>
+      <button class="section-btn active" data-filter="ALL" type="button">Todas</button>
+      <button class="section-btn" data-filter="FAV" type="button">Favoritos</button>
+
+      <button class="section-btn" data-filter="Servicios de apoyo" type="button">Servicios de apoyo</button>
+      <button class="section-btn" data-filter="Delegados" type="button">Delegados</button>
+      <button class="section-btn" data-filter="Destacamentos" type="button">Destacamentos</button>
+      <button class="section-btn" data-filter="Seguridad" type="button">Seguridad</button>
+      <button class="section-btn" data-filter="Comisión Directiva" type="button">Comisión Directiva</button>
+      <button class="section-btn" data-filter="Autos" type="button">Autos</button>
+
+      <!-- NUEVO -->
+      <button id="openAdd" class="section-btn section-btn-add" type="button">+ Agregar contacto</button>
     </nav>
 
-    <!-- Buscador -->
     <section class="search-wrap" aria-label="Buscar contacto">
       <div class="search-shell">
         <span class="search-icon" aria-hidden="true">🔎</span>
-        <input id="search" class="search" type="search" placeholder="Buscar por nombre, rol o teléfono…" autocomplete="off" />
+        <input id="search" class="search" type="search"
+               placeholder="Buscar por nombre, categoría o teléfono…"
+               autocomplete="off" />
+        <button id="clearSearch" class="clear-btn" type="button" aria-label="Borrar búsqueda">✕</button>
       </div>
-      <div class="hint">Toque una tarjeta para llamar</div>
+
+      <div class="hint">
+        Toque <strong>Llamar</strong> para abrir el marcador. Use ⭐ para guardar favoritos.
+        Para sumar un contacto nuevo, use <strong>+ Agregar contacto</strong> (se envía solicitud por mail).
+      </div>
     </section>
 
-    <!-- Tarjetas -->
-    <section class="content" aria-live="polite">
+    <section class="status-row" aria-live="polite">
+      <div id="status" class="status"></div>
+      <div id="toast" class="toast" hidden></div>
+    </section>
+
+    <section class="content">
       <div id="cards" class="cards"></div>
 
       <div id="empty" class="empty" hidden>
-        <p>No hay contactos para mostrar en esta sección.</p>
+        <p>No hay contactos para mostrar con este filtro / búsqueda.</p>
       </div>
     </section>
   </main>
@@ -62,7 +77,71 @@
     <small>Agenda interna — Uso institucional</small>
   </footer>
 
+  <!-- MODAL: Agregar contacto (trampa -> mailto) -->
+  <div id="modal" class="modal" hidden aria-hidden="true">
+    <div class="modal-backdrop" data-close="1"></div>
+
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 id="modalTitle">Solicitar alta de contacto</h2>
+        <button id="closeModal" class="icon-btn" type="button" aria-label="Cerrar">✕</button>
+      </div>
+
+      <p class="modal-sub">
+        Esta opción <strong>no agrega el contacto automáticamente</strong>.
+        Genera un email a <strong>mejoracontinua.sbvp@gmail.com</strong> con los datos para carga manual.
+      </p>
+
+      <form id="addForm" class="form">
+        <!-- Honeypot anti-bots (trampa real, invisible) -->
+        <div class="hp" aria-hidden="true">
+          <label>Dejar vacío</label>
+          <input id="website" type="text" autocomplete="off" />
+        </div>
+
+        <label class="field">
+          <span>Sección</span>
+          <select id="fSection" required>
+            <option value="" selected disabled>Seleccionar…</option>
+            <option>Servicios de apoyo</option>
+            <option>Delegados</option>
+            <option>Destacamentos</option>
+            <option>Seguridad</option>
+            <option>Comisión Directiva</option>
+            <option>Autos</option>
+            <option>Otro</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Categoría / Rol</span>
+          <input id="fRole" type="text" placeholder="Ej: Bombero, Guardia, Tesorería…" required />
+        </label>
+
+        <label class="field">
+          <span>Nombre y apellido</span>
+          <input id="fName" type="text" placeholder="Ej: Irina Bottini" required />
+        </label>
+
+        <label class="field">
+          <span>Teléfono</span>
+          <input id="fPhone" type="tel" placeholder="Ej: 2477-232120" required />
+          <small class="help">Sugerencia: cargalo como figura en el cuartel (con guión si lo usan así).</small>
+        </label>
+
+        <label class="field">
+          <span>Observaciones (opcional)</span>
+          <textarea id="fNotes" rows="3" placeholder="Ej: Horario, reemplazo, interno, etc."></textarea>
+        </label>
+
+        <div class="form-actions">
+          <button class="btn" type="button" id="cancelAdd">Cancelar</button>
+          <button class="btn btn-primary" type="submit">Enviar solicitud por mail</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
-
