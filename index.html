@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agenda - Cuartel</title>
+
+  <!-- Tipografía moderna -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">BV</div>
+        <div class="brand-text">
+          <h1>AGENDA</h1>
+          <p>Interna del cuartel</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- corte con doble línea azul -->
+    <div class="divider-double" aria-hidden="true"></div>
+  </header>
+
+  <main class="app">
+    <!-- Navegación por secciones -->
+    <nav class="sections" aria-label="Secciones de la agenda">
+      <button class="section-btn active" data-section="apoyo" type="button">Servicios de apoyo</button>
+      <button class="section-btn" data-section="delegados" type="button">Delegados</button>
+      <button class="section-btn" data-section="cuerpos" type="button">Cuerpos de Bomberos</button>
+      <button class="section-btn" data-section="activo" type="button">Cuerpo Activo</button>
+      <button class="section-btn" data-section="comision" type="button">Comisión Directiva</button>
+    </nav>
+
+    <!-- Buscador -->
+    <section class="search-wrap" aria-label="Buscar contacto">
+      <div class="search-shell">
+        <span class="search-icon" aria-hidden="true">🔎</span>
+        <input id="search" class="search" type="search" placeholder="Buscar por nombre, rol o teléfono…" autocomplete="off" />
+      </div>
+      <div class="hint">Toque una tarjeta para llamar</div>
+    </section>
+
+    <!-- Tarjetas -->
+    <section class="content" aria-live="polite">
+      <div id="cards" class="cards"></div>
+
+      <div id="empty" class="empty" hidden>
+        <p>No hay contactos para mostrar en esta sección.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>Agenda interna — Uso institucional</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
