@@ -5,12 +5,6 @@
    - Nombre y apellido
    - Rol
    - Teléfono
-
-   Tarjeta:
-   "Nombre y apellido"
-   "Rol"
-   "Categoría"
-   N° telefónico
    ========================================================= */
 
 const SHEET_CSV_URL =
@@ -308,7 +302,6 @@ function makeCard(contact, favorites) {
   phoneRow.appendChild(phoneText);
   phoneRow.appendChild(actions);
 
-  // Orden solicitado
   card.appendChild(name);
   if (contact.role) card.appendChild(role);
   if (contact.section) card.appendChild(category);
@@ -366,8 +359,16 @@ clearSearchEl.addEventListener("click", () => {
   render();
 });
 
+// FIX: listeners para ALL / FAV (antes no existían)
+function wireStaticFilters() {
+  document.querySelectorAll(".section-btn[data-filter]").forEach(btn => {
+    btn.addEventListener("click", () => setFilter(btn.dataset.filter));
+  });
+}
+
 // -------------------- INIT --------------------
 (async () => {
+  wireStaticFilters();           // <- FIX
   await loadContactsFromSheet();
   buildFilterButtons();
   setFilter("ALL");
