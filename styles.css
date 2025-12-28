@@ -32,15 +32,16 @@ body{
 }
 .topbar-inner{ max-width: 980px; margin: 0 auto; padding: 14px 16px 10px; }
 
-.brand{ display:grid; grid-template-columns: 44px 1fr; gap: 12px; align-items:center; }
+.brand{ display:grid; grid-template-columns: 64px 1fr; gap: 12px; align-items:center; }
 .brand-mark{
-  width:44px;height:44px;border-radius:14px;
+  width:64px;height:44px;border-radius:14px;
   display:grid;place-items:center;
   font-family:"Montserrat", system-ui, sans-serif;
   font-weight:800; letter-spacing:0.06em; color:#fff;
   background: linear-gradient(145deg, rgba(30,90,168,0.95), rgba(11,46,87,0.95));
   box-shadow: 0 10px 26px rgba(0,0,0,0.50);
   border: 1px solid rgba(255,255,255,0.16);
+  font-size: 14px;
 }
 .brand-text{ width:100%; text-align:center; }
 .brand-text h1{
@@ -195,10 +196,7 @@ body{
 }
 .btn:active{ transform: scale(0.98); }
 
-.btn[disabled]{
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+.btn[disabled]{ opacity: 0.45; cursor: not-allowed; }
 
 .btn-primary{
   border: 1px solid rgba(30,90,168,0.70);
