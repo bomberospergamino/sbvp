@@ -1,40 +1,90 @@
 /* =========================================================
-   CONTACTOS (ejemplo mínimo: reemplazalo por tu lista real)
+   AGENDA TELEFÓNICA - Google Sheets (CSV publicado)
+   Columnas esperadas (encabezados exactos):
+   - Categoría
+   - Nombre y apellido
+   - Rol
+   - Teléfono
+
+   Tarjeta:
+   "Nombre y apellido"
+   "Rol"
+   "Categoría"
+   N° telefónico
    ========================================================= */
-const CONTACTS = [
-  { section: "Cuerpo Activo", role: "Bombero", name: "Irina Bottini", phone: "2477-232120" }
-];
+
+const SHEET_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBuGTqIVZPrjPv3bs8cyQT6wksYR1TlamMXwOaR1t8zZTqITXyqSUfHH5XV6F_2Al5Zzqj8WQ64XKX/pub?gid=798213525&single=true&output=csv";
+
+let CONTACTS = [];
 
 const FAVORITES_KEY = "agenda_favorites_v1";
-const REQUEST_EMAIL = "mejoracontinua.sbvp@gmail.com";
-
 let currentFilter = "ALL";
 
+// DOM
 const cardsEl = document.getElementById("cards");
 const emptyEl = document.getElementById("empty");
 const searchEl = document.getElementById("search");
 const clearSearchEl = document.getElementById("clearSearch");
 const statusEl = document.getElementById("status");
 const toastEl = document.getElementById("toast");
-const sectionButtons = document.querySelectorAll(".section-btn");
+const dynFiltersEl = document.getElementById("dynFilters");
 
-// Modal elements
-const modalEl = document.getElementById("modal");
-const openAddEl = document.getElementById("openAdd");
-const closeModalEl = document.getElementById("closeModal");
-const cancelAddEl = document.getElementById("cancelAdd");
-const addFormEl = document.getElementById("addForm");
-const websiteHpEl = document.getElementById("website");
+// -------------------- CSV PARSER (robusto) --------------------
+function parseCSV(csvText) {
+  const rows = [];
+  let row = [];
+  let cur = "";
+  let inQuotes = false;
 
-const fSection = document.getElementById("fSection");
-const fRole = document.getElementById("fRole");
-const fName = document.getElementById("fName");
-const fPhone = document.getElementById("fPhone");
-const fNotes = document.getElementById("fNotes");
+  for (let i = 0; i < csvText.length; i++) {
+    const ch = csvText[i];
+    const next = csvText[i + 1];
 
-/* ===============================
-   Utilidades
-   =============================== */
+    if (inQuotes) {
+      if (ch === '"' && next === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        cur += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        row.push(cur);
+        cur = "";
+      } else if (ch === "\n") {
+        row.push(cur);
+        rows.push(row);
+        row = [];
+        cur = "";
+      } else if (ch === "\r") {
+        // ignore
+      } else {
+        cur += ch;
+      }
+    }
+  }
+
+  row.push(cur);
+  rows.push(row);
+
+  return rows.filter(r => r.some(cell => String(cell).trim() !== ""));
+}
+
+function norm(s) {
+  return String(s ?? "").trim();
+}
+
+function headerIndex(headers, target) {
+  const t = target.toLowerCase();
+  return headers.findIndex(h => norm(h).toLowerCase() === t);
+}
+
+// -------------------- UTIL --------------------
 function normalizePhoneForTel(phone) {
   const trimmed = String(phone || "").trim();
   const plus = trimmed.startsWith("+") ? "+" : "";
@@ -43,7 +93,7 @@ function normalizePhoneForTel(phone) {
 }
 
 function makeId(contact) {
-  return `${contact.section}__${contact.role}__${contact.name}__${contact.phone}`.toLowerCase();
+  return `${(contact.section || "").trim()}__${(contact.role || "").trim()}__${(contact.name || "").trim()}__${(contact.phone || "").trim()}`.toLowerCase();
 }
 
 function loadFavorites() {
@@ -78,13 +128,105 @@ async function copyText(text) {
   }
 }
 
-function escapeLine(s) {
-  return String(s || "").replace(/\r?\n/g, " ").trim();
+// -------------------- CARGA DESDE SHEET --------------------
+async function loadContactsFromSheet() {
+  statusEl.textContent = "Cargando contactos…";
+
+  try {
+    const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const text = await res.text();
+    const rows = parseCSV(text);
+
+    if (!rows.length) throw new Error("CSV vacío");
+
+    const headers = rows[0].map(norm);
+
+    const idxSection = headerIndex(headers, "Categoría");
+    const idxName    = headerIndex(headers, "Nombre y apellido");
+    const idxRole    = headerIndex(headers, "Rol");
+    const idxPhone   = headerIndex(headers, "Teléfono");
+
+    const missing = [];
+    if (idxSection < 0) missing.push("Categoría");
+    if (idxName < 0) missing.push("Nombre y apellido");
+    if (idxRole < 0) missing.push("Rol");
+    if (idxPhone < 0) missing.push("Teléfono");
+
+    if (missing.length) {
+      throw new Error(
+        `No encuentro estas columnas en el CSV: ${missing.join(", ")}. ` +
+        `Revisá que la fila 1 tenga exactamente esos encabezados (incluyendo tildes).`
+      );
+    }
+
+    CONTACTS = rows.slice(1)
+      .map(r => ({
+        section: norm(r[idxSection]),
+        name:    norm(r[idxName]),
+        role:    norm(r[idxRole]),
+        phone:   norm(r[idxPhone]),
+      }))
+      .filter(c => c.name !== "" || c.phone !== "");
+
+  } catch (err) {
+    console.error("Error cargando Google Sheet:", err);
+    CONTACTS = [];
+    statusEl.textContent = "No se pudieron cargar los contactos desde Google Sheet.";
+    showToast("Error de carga");
+  }
 }
 
-/* ===============================
-   Render
-   =============================== */
+// -------------------- FILTROS --------------------
+function uniqueSections() {
+  const set = new Set();
+  CONTACTS.forEach(c => set.add(String(c.section || "").trim()));
+  const arr = Array.from(set).filter(Boolean);
+  arr.sort((a,b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  return arr;
+}
+
+function buildFilterButtons() {
+  dynFiltersEl.innerHTML = "";
+
+  const sections = uniqueSections();
+  sections.forEach(sec => {
+    const btn = document.createElement("button");
+    btn.className = "section-btn";
+    btn.type = "button";
+    btn.dataset.filter = sec;
+    btn.textContent = sec;
+    btn.addEventListener("click", () => setFilter(sec));
+    dynFiltersEl.appendChild(btn);
+  });
+}
+
+function applyFilter(list, favorites) {
+  const q = (searchEl.value || "").trim().toLowerCase();
+  let filtered = list;
+
+  if (currentFilter === "FAV") {
+    filtered = filtered.filter(c => favorites.has(makeId(c)));
+  } else if (currentFilter !== "ALL") {
+    filtered = filtered.filter(c => String(c.section || "").trim() === currentFilter);
+  }
+
+  if (q) {
+    filtered = filtered.filter(c => {
+      const s1 = String(c.section || "").toLowerCase();
+      const s2 = String(c.role || "").toLowerCase();
+      const s3 = String(c.name || "").toLowerCase();
+      const s4 = String(c.phone || "").toLowerCase();
+      return s1.includes(q) || s2.includes(q) || s3.includes(q) || s4.includes(q);
+    });
+  }
+
+  filtered.sort((a,b) => String(a.name||"").localeCompare(String(b.name||""), "es"));
+  return filtered;
+}
+
+// -------------------- RENDER --------------------
 function makeCard(contact, favorites) {
   const id = makeId(contact);
   const isFav = favorites.has(id);
@@ -95,34 +237,25 @@ function makeCard(contact, favorites) {
   const card = document.createElement("article");
   card.className = "card";
 
-  const top = document.createElement("div");
-  top.className = "card-top";
-
-  const left = document.createElement("div");
+  // Nombre y apellido
   const name = document.createElement("h3");
   name.className = "card-name";
   name.textContent = contact.name || "(Sin nombre)";
 
+  // Rol
   const role = document.createElement("p");
   role.className = "card-role";
   role.textContent = contact.role || "";
 
-  left.appendChild(name);
-  if (contact.role) left.appendChild(role);
+  // Categoría
+  const category = document.createElement("p");
+  category.className = "card-cat";
+  category.textContent = contact.section || "";
 
-  const badge = document.createElement("span");
-  badge.className = "badge";
-  badge.textContent = contact.section || "Sección";
-
-  top.appendChild(left);
-  top.appendChild(badge);
-
-  const phoneRow = document.createElement("div");
-  phoneRow.className = "card-phone";
-
+  // Teléfono + acciones
   const phoneText = document.createElement("div");
   phoneText.className = "phone-text";
-  phoneText.textContent = contact.phone ? contact.phone : "Sin teléfono";
+  phoneText.textContent = contact.phone ? contact.phone : "—";
 
   const actions = document.createElement("div");
   actions.className = "actions";
@@ -131,7 +264,6 @@ function makeCard(contact, favorites) {
   starBtn.className = "btn star";
   starBtn.type = "button";
   starBtn.textContent = isFav ? "★" : "☆";
-
   starBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (favorites.has(id)) {
@@ -152,7 +284,6 @@ function makeCard(contact, favorites) {
   copyBtn.type = "button";
   copyBtn.textContent = "Copiar";
   copyBtn.disabled = !contact.phone;
-
   copyBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (contact.phone) copyText(contact.phone);
@@ -163,7 +294,6 @@ function makeCard(contact, favorites) {
   callBtn.type = "button";
   callBtn.textContent = "Llamar";
   callBtn.disabled = !hasPhone;
-
   callBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (hasPhone) window.location.href = `tel:${tel}`;
@@ -173,10 +303,15 @@ function makeCard(contact, favorites) {
   actions.appendChild(copyBtn);
   actions.appendChild(callBtn);
 
+  const phoneRow = document.createElement("div");
+  phoneRow.className = "card-phone";
   phoneRow.appendChild(phoneText);
   phoneRow.appendChild(actions);
 
-  card.appendChild(top);
+  // Orden solicitado
+  card.appendChild(name);
+  if (contact.role) card.appendChild(role);
+  if (contact.section) card.appendChild(category);
   card.appendChild(phoneRow);
 
   card.addEventListener("click", () => {
@@ -184,31 +319,6 @@ function makeCard(contact, favorites) {
   });
 
   return card;
-}
-
-function applyFilter(list, favorites) {
-  const q = (searchEl.value || "").trim().toLowerCase();
-
-  let filtered = list;
-
-  if (currentFilter === "FAV") {
-    filtered = filtered.filter(c => favorites.has(makeId(c)));
-  } else if (currentFilter !== "ALL") {
-    filtered = filtered.filter(c => (c.section || "") === currentFilter);
-  }
-
-  if (q) {
-    filtered = filtered.filter(c => {
-      const s1 = (c.section || "").toLowerCase();
-      const s2 = (c.role || "").toLowerCase();
-      const s3 = (c.name || "").toLowerCase();
-      const s4 = (c.phone || "").toLowerCase();
-      return s1.includes(q) || s2.includes(q) || s3.includes(q) || s4.includes(q);
-    });
-  }
-
-  filtered.sort((a,b) => (a.name||"").localeCompare(b.name||"", "es"));
-  return filtered;
 }
 
 function render() {
@@ -233,123 +343,32 @@ function render() {
   filtered.forEach(c => cardsEl.appendChild(makeCard(c, favorites)));
 }
 
-/* ===============================
-   Filtros
-   =============================== */
 function setFilter(filterKey) {
   currentFilter = filterKey;
-  sectionButtons.forEach(btn => {
+
+  // botones fijos (ALL / FAV)
+  document.querySelectorAll(".section-btn[data-filter]").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.filter === filterKey);
   });
+
+  // botones dinámicos (categorías)
+  dynFiltersEl.querySelectorAll(".section-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.filter === filterKey);
+  });
+
   render();
 }
 
-sectionButtons.forEach(btn => {
-  if (btn.dataset.filter) {
-    btn.addEventListener("click", () => setFilter(btn.dataset.filter));
-  }
-});
-
+// -------------------- EVENTOS --------------------
 searchEl.addEventListener("input", render);
-
 clearSearchEl.addEventListener("click", () => {
   searchEl.value = "";
   render();
 });
 
-/* ===============================
-   Modal “Agregar contacto” -> mailto
-   =============================== */
-function openModal() {
-  modalEl.hidden = false;
-  modalEl.setAttribute("aria-hidden", "false");
-  // default
-  fSection.value = "";
-  fRole.value = "";
-  fName.value = "";
-  fPhone.value = "";
-  fNotes.value = "";
-  websiteHpEl.value = "";
-  setTimeout(() => fSection.focus(), 0);
-}
-
-function closeModal() {
-  modalEl.hidden = true;
-  modalEl.setAttribute("aria-hidden", "true");
-}
-
-openAddEl.addEventListener("click", openModal);
-closeModalEl.addEventListener("click", closeModal);
-cancelAddEl.addEventListener("click", closeModal);
-
-modalEl.addEventListener("click", (e) => {
-  if (e.target && e.target.dataset && e.target.dataset.close === "1") {
-    closeModal();
-  }
-});
-
-document.addEventListener("keydown", (e) => {
-  if (!modalEl.hidden && e.key === "Escape") closeModal();
-});
-
-function buildMailto(payload) {
-  const now = new Date();
-  const ts = now.toLocaleString("es-AR");
-
-  const subject = `Solicitud alta contacto - Agenda Cuartel (${escapeLine(payload.section)} / ${escapeLine(payload.name)})`;
-
-  const bodyLines = [
-    "Solicitud de alta de contacto (Agenda interna)",
-    "------------------------------------------",
-    `Fecha/Hora: ${ts}`,
-    "",
-    `Sección: ${escapeLine(payload.section)}`,
-    `Categoría/Rol: ${escapeLine(payload.role)}`,
-    `Nombre: ${escapeLine(payload.name)}`,
-    `Teléfono: ${escapeLine(payload.phone)}`,
-    payload.notes ? `Observaciones: ${escapeLine(payload.notes)}` : "Observaciones: -",
-    "",
-    "Acción solicitada: Cargar este contacto en la fuente oficial (Excel/JS) y republicar.",
-  ];
-
-  const mailto =
-    `mailto:${encodeURIComponent(REQUEST_EMAIL)}` +
-    `?subject=${encodeURIComponent(subject)}` +
-    `&body=${encodeURIComponent(bodyLines.join("\n"))}`;
-
-  return mailto;
-}
-
-addFormEl.addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  // Honeypot: si está lleno, no hacemos nada (anti-bot)
-  if (websiteHpEl.value && websiteHpEl.value.trim() !== "") {
-    showToast("Solicitud bloqueada");
-    closeModal();
-    return;
-  }
-
-  const payload = {
-    section: fSection.value,
-    role: fRole.value,
-    name: fName.value,
-    phone: fPhone.value,
-    notes: fNotes.value
-  };
-
-  // “Trampa”: no agregamos; solo preparamos mail
-  const mailto = buildMailto(payload);
-
-  showToast("Preparando email…");
-  // Abre el cliente de correo con todo armado
-  window.location.href = mailto;
-
-  // Cierra modal (aunque el usuario cancele el envío, no afecta)
-  closeModal();
-});
-
-/* ===============================
-   Arranque
-   =============================== */
-setFilter("ALL");
+// -------------------- INIT --------------------
+(async () => {
+  await loadContactsFromSheet();
+  buildFilterButtons();
+  setFilter("ALL");
+})();
