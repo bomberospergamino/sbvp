@@ -47,3 +47,13 @@ https://bomberospergamino.github.io/Home/
 ## Cambiar links
 
 En `index.html`, reemplazar los `href="#"` por la URL real de cada herramienta cuando esté creada.
+
+
+## Cambios v2
+
+- Se eliminó el panel superior de Compartir APP.
+- El primer bloque visible ahora es Controles y reportes.
+- El botón Compartir APP queda solo en Complementos.
+- Se agregó banner de instalación de la APP.
+- Se agregó `service-worker.js` para habilitar instalación como PWA.
+- Se mantiene el logo institucional del cuartel.

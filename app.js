@@ -1,6 +1,11 @@
 const APP_TITLE = 'Herramientas operativas SBVP';
 
 const toast = document.getElementById('toast');
+const installBanner = document.getElementById('installBanner');
+const installBtn = document.getElementById('installBtn');
+const dismissInstallBtn = document.getElementById('dismissInstallBtn');
+
+let deferredInstallPrompt = null;
 
 document.querySelectorAll('.accordion-trigger').forEach((trigger) => {
   trigger.addEventListener('click', () => {
@@ -18,7 +23,47 @@ document.querySelectorAll('[data-pending]').forEach((el) => {
 });
 
 document.getElementById('shareBtn').addEventListener('click', shareApp);
-document.getElementById('shareTopBtn').addEventListener('click', shareApp);
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+
+  const dismissed = localStorage.getItem('sbvpInstallDismissed') === 'true';
+  if(!dismissed && installBanner) installBanner.classList.remove('hidden');
+});
+
+if(installBtn){
+  installBtn.addEventListener('click', async () => {
+    if(!deferredInstallPrompt){
+      showToast('Desde el navegador podés usar “Agregar a pantalla principal”.');
+      return;
+    }
+
+    installBanner.classList.add('hidden');
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+  });
+}
+
+if(dismissInstallBtn){
+  dismissInstallBtn.addEventListener('click', () => {
+    installBanner.classList.add('hidden');
+    localStorage.setItem('sbvpInstallDismissed', 'true');
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  installBanner.classList.add('hidden');
+  localStorage.setItem('sbvpInstallDismissed', 'true');
+  showToast('APP instalada correctamente.');
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
 
 async function shareApp(){
   const shareData = {
