@@ -1,0 +1,17 @@
+{
+  "name": "SBVP Herramientas Operativas",
+  "short_name": "SBVP App",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f8",
+  "theme_color": "#063452",
+  "description": "Panel central de herramientas operativas para Bomberos Voluntarios Pergamino.",
+  "icons": [
+    {
+      "src": "logo-sbvp.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

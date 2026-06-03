@@ -3,82 +3,176 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agenda Telefónica</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
+  <title>SBVP · Herramientas operativas</title>
+  <meta name="theme-color" content="#063452" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
   <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <!-- CAMBIO: SBVP -->
-        <div class="brand-mark" aria-hidden="true">SBVP</div>
-
-        <div class="brand-text">
-          <h1>AGENDA</h1>
-          <!-- CAMBIO: subtítulo -->
-          <p>Contactos para uso en emergencias</p>
-        </div>
-      </div>
+    <img src="logo-sbvp.png" alt="Sociedad Bomberos Voluntarios Pergamino" class="logo" />
+    <div class="topbar-text">
+      <p class="eyebrow">Sociedad Bomberos Voluntarios Pergamino</p>
+      <h1>Herramientas operativas</h1>
+      <p class="subtitle">Acceso rápido a controles, reportes y recursos del cuartel.</p>
     </div>
-
-    <div class="divider-double" aria-hidden="true"></div>
   </header>
 
-  <main class="app">
-    <nav class="sections" aria-label="Filtros de la agenda">
-      <button class="section-btn active" data-filter="ALL" type="button">Todas</button>
-      <button class="section-btn" data-filter="FAV" type="button">Favoritos</button>
+  <main class="app-shell">
+    <section class="hero card">
+      <div>
+        <p class="eyebrow">Inicio</p>
+        <h2>Panel central SBVP</h2>
+        <p>Seleccioná una herramienta o sección. El diseño está optimizado para celular y también se adapta a computadora.</p>
+      </div>
+      <button id="shareTopBtn" class="ghost-btn" type="button">Compartir APP</button>
+    </section>
 
-      <!-- Botones dinámicos desde el Sheet (Categoría) -->
-      <div id="dynFilters" class="dyn-filters" aria-label="Categorías"></div>
-
-      <!-- CAMBIO: Link Jotform -->
-      <a id="addLink"
-         class="section-btn section-btn-add"
-         href="https://form.jotform.com/253613523796059"
-         target="_blank"
-         rel="noopener">
-        + Agregar contacto
-      </a>
-    </nav>
-
-    <section class="search-wrap" aria-label="Buscar contacto">
-      <div class="search-shell">
-        <span class="search-icon" aria-hidden="true">🔎</span>
-        <input id="search" class="search" type="search"
-               placeholder="Buscar por nombre, rol, categoría o teléfono…"
-               autocomplete="off" />
-        <button id="clearSearch" class="clear-btn" type="button" aria-label="Borrar búsqueda">✕</button>
+    <section class="section-block">
+      <div class="section-heading">
+        <p class="eyebrow">Accesos principales</p>
+        <h2>Controles y reportes</h2>
       </div>
 
-      <div class="hint">
-        Use ⭐ para favoritos. “Copiar” copia el teléfono. “Llamar” abre el marcador.
+      <div class="tool-grid">
+        <a class="tool-card primary-link" href="https://bomberospergamino.github.io/Equipamiento/">
+          <span class="icon">✅</span>
+          <span>
+            <strong>Controles Diarios</strong>
+            <small>Control de equipamiento y actividades programadas.</small>
+          </span>
+        </a>
+
+        <a class="tool-card" href="#" data-pending="Reporte Diario">
+          <span class="icon">📋</span>
+          <span>
+            <strong>Reporte Diario</strong>
+            <small>Parte diario de guardia y novedades generales.</small>
+          </span>
+        </a>
+
+        <a class="tool-card" href="#" data-pending="Registro de Desvíos">
+          <span class="icon">⚠️</span>
+          <span>
+            <strong>Registro de Desvíos</strong>
+            <small>Carga y seguimiento de desvíos operativos.</small>
+          </span>
+        </a>
       </div>
     </section>
 
-    <section class="status-row" aria-live="polite">
-      <div id="status" class="status">Cargando contactos…</div>
-      <div id="toast" class="toast" hidden></div>
+    <section class="section-block">
+      <div class="section-heading">
+        <p class="eyebrow">Secciones operativas</p>
+        <h2>Áreas del cuartel</h2>
+      </div>
+
+      <div class="accordion-list">
+        <article class="accordion-card open">
+          <button class="accordion-trigger" type="button">
+            <span><span class="section-icon">🧰</span> Equipamiento</span>
+            <span class="chevron">⌄</span>
+          </button>
+          <div class="accordion-content">
+            <a class="sub-link" href="#" data-pending="Equipamiento · Depósito">
+              <strong>Depósito</strong>
+              <small>Materiales, insumos y control de stock.</small>
+            </a>
+            <a class="sub-link" href="#" data-pending="Equipamiento · Ropería">
+              <strong>Ropería</strong>
+              <small>EPP, indumentaria y asignaciones.</small>
+            </a>
+          </div>
+        </article>
+
+        <article class="accordion-card">
+          <button class="accordion-trigger" type="button">
+            <span><span class="section-icon">🚒</span> Soporte Operativo</span>
+            <span class="chevron">⌄</span>
+          </button>
+          <div class="accordion-content">
+            <a class="sub-link" href="#" data-pending="Control de Choferes">
+              <strong>Control de Choferes</strong>
+              <small>Registro y control operativo de choferes.</small>
+            </a>
+          </div>
+        </article>
+
+        <article class="accordion-card">
+          <button class="accordion-trigger" type="button">
+            <span><span class="section-icon">🎓</span> Formación profesional</span>
+            <span class="chevron">⌄</span>
+          </button>
+          <div class="accordion-content">
+            <a class="sub-link" href="#" data-pending="Formación profesional">
+              <strong>Formación profesional</strong>
+              <small>Capacitaciones, materiales y seguimiento formativo.</small>
+            </a>
+          </div>
+        </article>
+
+        <article class="accordion-card">
+          <button class="accordion-trigger" type="button">
+            <span><span class="section-icon">🔥</span> Brigadas</span>
+            <span class="chevron">⌄</span>
+          </button>
+          <div class="accordion-content">
+            <a class="sub-link" href="#" data-pending="Brigadas · Herramienta 1">
+              <strong>Herramienta de brigadas</strong>
+              <small>Espacio preparado para futuras herramientas.</small>
+            </a>
+            <a class="sub-link" href="#" data-pending="Brigadas · Documentación">
+              <strong>Documentación</strong>
+              <small>Protocolos, registros y recursos por brigada.</small>
+            </a>
+          </div>
+        </article>
+      </div>
     </section>
 
-    <section class="content">
-      <div id="cards" class="cards"></div>
+    <section class="section-block">
+      <div class="section-heading">
+        <p class="eyebrow">Complementos</p>
+        <h2>Recursos rápidos</h2>
+      </div>
 
-      <div id="empty" class="empty" hidden>
-        <p>No hay contactos para mostrar con este filtro / búsqueda.</p>
+      <div class="tool-grid compact">
+        <a class="tool-card" href="#" data-pending="Agenda de contactos">
+          <span class="icon">☎️</span>
+          <span>
+            <strong>Agenda de contactos</strong>
+            <small>Teléfonos y referencias institucionales.</small>
+          </span>
+        </a>
+
+        <a class="tool-card" href="#" data-pending="Ubicación de hidrantes">
+          <span class="icon">💧</span>
+          <span>
+            <strong>Ubicación de hidrantes</strong>
+            <small>Mapa o listado de hidrantes disponibles.</small>
+          </span>
+        </a>
+
+        <a class="tool-card" href="#" data-pending="Mapas de jurisdicción">
+          <span class="icon">🗺️</span>
+          <span>
+            <strong>Mapas de jurisdicción</strong>
+            <small>Recursos geográficos para intervención.</small>
+          </span>
+        </a>
+
+        <button id="shareBtn" class="tool-card button-card" type="button">
+          <span class="icon">📲</span>
+          <span>
+            <strong>Compartir APP</strong>
+            <small>Enviar el link del panel central.</small>
+          </span>
+        </button>
       </div>
     </section>
   </main>
 
-  <footer class="app-footer">
-    <small>Agenda interna — Uso institucional</small>
-  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>
