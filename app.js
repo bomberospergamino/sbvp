@@ -4,6 +4,7 @@ const toast = document.getElementById('toast');
 const installBanner = document.getElementById('installBanner');
 const installBtn = document.getElementById('installBtn');
 const dismissInstallBtn = document.getElementById('dismissInstallBtn');
+const permanentInstallBtn = document.getElementById('permanentInstallBtn');
 
 let deferredInstallPrompt = null;
 
@@ -23,6 +24,7 @@ document.querySelectorAll('[data-pending]').forEach((el) => {
 });
 
 document.getElementById('shareBtn').addEventListener('click', shareApp);
+if(permanentInstallBtn) permanentInstallBtn.addEventListener('click', installApp);
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
@@ -33,17 +35,7 @@ window.addEventListener('beforeinstallprompt', (event) => {
 });
 
 if(installBtn){
-  installBtn.addEventListener('click', async () => {
-    if(!deferredInstallPrompt){
-      showToast('Desde el navegador podés usar “Agregar a pantalla principal”.');
-      return;
-    }
-
-    installBanner.classList.add('hidden');
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-  });
+  installBtn.addEventListener('click', installApp);
 }
 
 if(dismissInstallBtn){
@@ -63,6 +55,23 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js').catch(() => {});
   });
+}
+
+async function installApp(){
+  if(deferredInstallPrompt){
+    if(installBanner) installBanner.classList.add('hidden');
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    return;
+  }
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(isIOS){
+    showToast('En iPhone: abrí Compartir y elegí “Agregar a pantalla de inicio”.');
+  }else{
+    showToast('Abrí el menú del navegador y elegí “Instalar app” o “Agregar a pantalla principal”.');
+  }
 }
 
 async function shareApp(){

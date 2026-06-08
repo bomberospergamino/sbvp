@@ -57,3 +57,13 @@ En `index.html`, reemplazar los `href="#"` por la URL real de cada herramienta c
 - Se agregó banner de instalación de la APP.
 - Se agregó `service-worker.js` para habilitar instalación como PWA.
 - Se mantiene el logo institucional del cuartel.
+
+
+## Instalación como APP
+
+La pantalla incluye dos accesos de instalación:
+
+- Banner superior automático cuando el navegador habilita la instalación PWA.
+- Botón fijo **Instalar APP** debajo de **Compartir APP**, para que la opción quede siempre visible.
+
+En Android/Chrome puede abrir el instalador directamente. En iPhone/Safari no se puede forzar por código: el botón muestra la indicación para usar **Compartir → Agregar a pantalla de inicio**.
