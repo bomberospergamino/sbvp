@@ -8,6 +8,7 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
 - Reporte Diario
 - Registro de Desvíos
 - Equipamiento
+  - Pizarra de novedades
   - Depósito
   - Ropería
 - Soporte Operativo
@@ -22,10 +23,18 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
 
 ## Link ya cargado
 
+Links ya cargados:
+
 Controles Diarios apunta a:
 
 ```text
 https://bomberospergamino.github.io/Equipamiento/
+```
+
+Pizarra de novedades de Equipamiento apunta a:
+
+```text
+https://bomberospergamino.github.io/NovedadesEquipamiento/
 ```
 
 El resto de los botones queda preparado con aviso de “acceso preparado” hasta que se vinculen los repos correspondientes.
