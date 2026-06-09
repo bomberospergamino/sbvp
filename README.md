@@ -1,4 +1,4 @@
-# SBVP · Herramientas operativas
+# SBVP · Home PWA
 
 Home central para herramientas del cuartel, optimizado para celular y compatible con GitHub Pages.
 
@@ -76,3 +76,13 @@ La pantalla incluye dos accesos de instalación:
 - Botón fijo **Instalar APP** debajo de **Compartir APP**, para que la opción quede siempre visible.
 
 En Android/Chrome puede abrir el instalador directamente. En iPhone/Safari no se puede forzar por código: el botón muestra la indicación para usar **Compartir → Agregar a pantalla de inicio**.
+
+
+## Cambios v4
+
+- Título principal cambiado a “Bienvenidos”.
+- Se eliminó el subtítulo bajo el título.
+- “Áreas del cuartel” pasó a “Secciones del cuartel”.
+- Brigadas se separó como división operativa independiente.
+- Se confirmó el acceso “Pizarra de novedades” dentro de Equipamiento.
+- Se actualizó la caché del service worker para forzar actualización en celulares.
