@@ -5,6 +5,7 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
 ## Secciones incluidas
 
 - Partes de servicio
+- Controles Diarios
 - Reporte Diario
 - Registro de Desvíos
 - Equipamiento
@@ -30,6 +31,12 @@ Partes de servicio apunta a:
 
 ```text
 https://bomberospergamino.github.io/GeneradorPartes/
+```
+
+Controles Diarios apunta a:
+
+```text
+https://bomberospergamino.github.io/Equipamiento/
 ```
 
 Pizarra de novedades de Equipamiento apunta a:
@@ -103,6 +110,7 @@ En Android/Chrome puede abrir el instalador directamente. En iPhone/Safari no se
 ## Cambios v5
 
 - La primera opción de Controles y reportes ahora es **Partes de servicio**.
+- Se restauró **Controles Diarios** como segunda opción, apuntando a Equipamiento.
 - Se cargaron los links reales para hidrantes y jurisdicción.
 - Se agregó la pizarra de novedades de Soporte Operativo.
 - Se actualizó la caché del service worker.
