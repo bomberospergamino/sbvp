@@ -4,7 +4,7 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
 
 ## Secciones incluidas
 
-- Controles Diarios
+- Partes de servicio
 - Reporte Diario
 - Registro de Desvíos
 - Equipamiento
@@ -12,6 +12,7 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
   - Depósito
   - Ropería
 - Soporte Operativo
+  - Pizarra de novedades
   - Control de Choferes
 - Formación profesional
 - Brigadas
@@ -25,16 +26,28 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
 
 Links ya cargados:
 
-Controles Diarios apunta a:
+Partes de servicio apunta a:
 
 ```text
-https://bomberospergamino.github.io/Equipamiento/
+https://bomberospergamino.github.io/GeneradorPartes/
 ```
 
 Pizarra de novedades de Equipamiento apunta a:
 
 ```text
 https://bomberospergamino.github.io/NovedadesEquipamiento/
+```
+
+Ubicación de hidrantes apunta a:
+
+```text
+https://maphub.net/sbvp28/sbvp
+```
+
+Mapas de jurisdicción apunta a:
+
+```text
+https://maphub.net/sbvp28/jurisdiccion
 ```
 
 El resto de los botones queda preparado con aviso de “acceso preparado” hasta que se vinculen los repos correspondientes.
@@ -86,3 +99,10 @@ En Android/Chrome puede abrir el instalador directamente. En iPhone/Safari no se
 - Brigadas se separó como división operativa independiente.
 - Se confirmó el acceso “Pizarra de novedades” dentro de Equipamiento.
 - Se actualizó la caché del service worker para forzar actualización en celulares.
+
+## Cambios v5
+
+- La primera opción de Controles y reportes ahora es **Partes de servicio**.
+- Se cargaron los links reales para hidrantes y jurisdicción.
+- Se agregó la pizarra de novedades de Soporte Operativo.
+- Se actualizó la caché del service worker.
