@@ -182,6 +182,18 @@ h2{font-size:1.25rem;color:#061f32}
 .sub-link strong{display:block;color:var(--navy)}
 .sub-link small{display:block;color:var(--muted);margin-top:4px}
 .sub-link:hover{border-color:rgba(6,52,82,.42);background:#f4f9fc}
+.sub-group{
+  display:grid;
+  gap:10px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  background:#f7fbfd;
+}
+.sub-group-title{
+  color:var(--navy);
+  font-weight:950;
+}
 
 .install-banner{
   background:linear-gradient(135deg,var(--navy),#0b4b74);

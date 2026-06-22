@@ -16,6 +16,13 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
   - Pizarra de novedades
   - Control de Choferes
 - Formación profesional
+  - Presentación de certificado
+- Ayudantía
+  - Licencias ordinarias
+  - Salud
+  - Presentación de certificados médicos
+  - Vacunación
+  - Cobertura médica
 - Brigadas
 - Complementos
   - Agenda de contactos
@@ -113,4 +120,12 @@ En Android/Chrome puede abrir el instalador directamente. En iPhone/Safari no se
 - Se restauró **Controles Diarios** como segunda opción, apuntando a Equipamiento.
 - Se cargaron los links reales para hidrantes y jurisdicción.
 - Se agregó la pizarra de novedades de Soporte Operativo.
+- Se actualizó la caché del service worker.
+
+## Cambios v6
+
+- Se agregó la sección **Ayudantía**.
+- Se agregaron los apartados de **Licencias ordinarias** y **Salud**.
+- Dentro de Salud se agregaron **Presentación de certificados médicos**, **Vacunación** y **Cobertura médica**.
+- En Formación profesional se agregó **Presentación de certificado**.
 - Se actualizó la caché del service worker.
