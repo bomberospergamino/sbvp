@@ -10,6 +10,7 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
 - Registro de Desvíos
 - Equipamiento
   - Pizarra de novedades
+  - Checks realizados
   - Depósito
   - Ropería
 - Soporte Operativo
@@ -46,10 +47,22 @@ Controles Diarios apunta a:
 https://bomberospergamino.github.io/Equipamiento/
 ```
 
+Reporte Diario apunta a:
+
+```text
+https://bomberospergamino.github.io/ReporteDiarioSBVP/
+```
+
 Pizarra de novedades de Equipamiento apunta a:
 
 ```text
 https://bomberospergamino.github.io/NovedadesEquipamiento/
+```
+
+Checks realizados de Equipamiento apunta a:
+
+```text
+https://bomberospergamino.github.io/ControlesRealizados/
 ```
 
 Ubicación de hidrantes apunta a:
@@ -128,4 +141,10 @@ En Android/Chrome puede abrir el instalador directamente. En iPhone/Safari no se
 - Se agregaron los apartados de **Licencias ordinarias** y **Salud**.
 - Dentro de Salud se agregaron **Presentación de certificados médicos**, **Vacunación** y **Cobertura médica**.
 - En Formación profesional se agregó **Presentación de certificado**.
+- Se actualizó la caché del service worker.
+
+## Cambios v7
+
+- Se vinculó **Reporte Diario** con su URL real.
+- Se agregó **Checks realizados** dentro de Equipamiento.
 - Se actualizó la caché del service worker.
