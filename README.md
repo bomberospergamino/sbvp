@@ -8,6 +8,7 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
 - Controles Diarios
 - Reporte Diario
 - Registro de Desvíos
+- Fichero
 - Equipamiento
   - Pizarra de novedades
   - Checks realizados
@@ -63,6 +64,12 @@ Checks realizados de Equipamiento apunta a:
 
 ```text
 https://bomberospergamino.github.io/ControlesRealizados/
+```
+
+Brigadas apunta a:
+
+```text
+https://bomberospergamino.github.io/brigadas/
 ```
 
 Ubicación de hidrantes apunta a:
@@ -147,4 +154,10 @@ En Android/Chrome puede abrir el instalador directamente. En iPhone/Safari no se
 
 - Se vinculó **Reporte Diario** con su URL real.
 - Se agregó **Checks realizados** dentro de Equipamiento.
+- Se actualizó la caché del service worker.
+
+## Cambios v8
+
+- Se convirtió **Brigadas** en un botón con link directo.
+- Se agregó el botón **Fichero** en la barra superior como acceso pendiente.
 - Se actualizó la caché del service worker.

@@ -27,6 +27,7 @@ body{
   display:flex;
   gap:14px;
   align-items:center;
+  flex-wrap:wrap;
   border-bottom:5px solid var(--red);
 }
 .logo{
@@ -38,7 +39,27 @@ body{
   padding:6px;
   flex:0 0 auto;
 }
-.topbar-text{min-width:0}
+.topbar-text{min-width:0;flex:1 1 auto}
+.topbar-link{
+  margin-left:auto;
+  border:1px solid rgba(255,255,255,.32);
+  border-radius:16px;
+  background:rgba(255,255,255,.12);
+  color:white;
+  min-height:46px;
+  padding:10px 14px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font:inherit;
+  font-weight:900;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.topbar-link:hover,.topbar-link:focus-visible{
+  background:rgba(255,255,255,.2);
+  outline:none;
+}
 h1,h2,h3,p{margin:0}
 h1{font-size:1.35rem;line-height:1.08}
 h2{font-size:1.25rem;color:#061f32}
@@ -80,6 +101,10 @@ h2{font-size:1.25rem;color:#061f32}
   gap:12px;
 }
 .tool-grid.compact{grid-template-columns:repeat(4,minmax(0,1fr))}
+.tool-grid.single{
+  grid-template-columns:1fr;
+  max-width:360px;
+}
 .tool-card{
   text-decoration:none;
   color:var(--text);
@@ -252,6 +277,7 @@ h2{font-size:1.25rem;color:#061f32}
   .install-actions{width:100%}#installBtn{flex:1}
 
   .topbar{padding:12px}
+  .topbar-link{min-height:42px;padding:9px 11px}
   .logo{width:58px;height:58px;border-radius:16px}
   h1{font-size:1.12rem}
   h2{font-size:1.18rem}
