@@ -15,8 +15,8 @@ Home central para herramientas del cuartel, optimizado para celular y compatible
   - Depósito
   - Ropería
 - Soporte Operativo
-  - Pizarra de novedades
   - Control de Choferes
+  - Pizarra de novedades
 - Formación profesional
   - Presentación de certificado
 - Ayudantía
@@ -64,6 +64,12 @@ Checks realizados de Equipamiento apunta a:
 
 ```text
 https://bomberospergamino.github.io/ControlesRealizados/
+```
+
+Control de Choferes apunta a:
+
+```text
+https://bomberospergamino.github.io/choferes/
 ```
 
 Brigadas apunta a:
@@ -160,4 +166,10 @@ En Android/Chrome puede abrir el instalador directamente. En iPhone/Safari no se
 
 - Se convirtió **Brigadas** en un botón con link directo.
 - Se agregó el botón **Fichero** en la barra superior como acceso pendiente.
+- Se actualizó la caché del service worker.
+
+## Cambios v9
+
+- En Soporte Operativo, **Control de Choferes** quedó primero.
+- Se vinculó **Control de Choferes** con su URL real.
 - Se actualizó la caché del service worker.
