@@ -4,6 +4,7 @@ const HISTORY_KEY = 'sbvpChoferesHistoryV2';
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBLdphfKsY0a7U-FwTh8p8wBwgD9XRorQ_8hKzr9XaUNFVWaAWr1jePXeeXD_LPSNd/exec';
 const DAYS = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
 const SECTION_ORDER = ['CABINA', 'BOMBA', 'LUCES', 'NEUMATICOS', 'FLUIDOS', 'FLUIDOS Y NEUMATICOS', 'OBSERVACIONES'];
+const BOTIQUIN_EXCLUDED_VEHICLES = ['MOVIL 3'];
 
 const commonMobileQuestions = [
   { section: 'CABINA', question: 'Estado e higiene' },
@@ -80,6 +81,7 @@ let allMobilesOpen = false;
 
 const els = {
   syncStatus: document.getElementById('syncStatus'),
+  driveArchive: document.getElementById('driveArchive'),
   configPanel: document.getElementById('configPanel'),
   scriptUrl: document.getElementById('scriptUrl'),
   saveConfig: document.getElementById('saveConfig'),
@@ -106,6 +108,7 @@ init();
 function init() {
   els.controlDate.valueAsDate = new Date();
   els.scriptUrl.value = getScriptUrl();
+  els.driveArchive.href = state.driveFolderUrl || baseData.driveFolderUrl;
   bindEvents();
   updateConnectionStatus();
   renderAll();
@@ -140,6 +143,7 @@ function openTab(name) {
 }
 
 function renderAll() {
+  els.driveArchive.href = state.driveFolderUrl || baseData.driveFolderUrl;
   renderChoferesList();
   renderDays();
   renderAgendaDetail();
@@ -262,7 +266,7 @@ function bindDayActions() {
   els.agendaDetail.querySelectorAll('[data-open-check]').forEach(button => {
     button.addEventListener('click', () => {
       if (!selectedDay) selectedDay = 'Todos los moviles';
-      activeCheck = { type: button.dataset.openCheck, vehicle: button.dataset.vehicle };
+      startFreshCheck(button.dataset.openCheck, button.dataset.vehicle);
       openTab('checks');
       renderAll();
     });
@@ -270,6 +274,9 @@ function bindDayActions() {
   const botiquines = els.agendaDetail.querySelector('[data-open-botiquines]');
   if (botiquines) botiquines.addEventListener('click', () => {
     activeCheck = { type: 'botiquines', vehicle: '' };
+    getBotiquinVehicles().forEach(vehicle => {
+      getRecord(selectedDay, vehicle).botiquin = '';
+    });
     openTab('checks');
     renderChecks();
   });
@@ -303,7 +310,7 @@ function renderChecks() {
   let vehicles = agenda.mobileChecks.filter(vehicle => state.vehicles.includes(vehicle));
   if (activeCheck?.type === 'check-movil') vehicles = [activeCheck.vehicle];
   if (activeCheck?.type === 'check-fluidos') vehicles = [activeCheck.vehicle];
-  if (activeCheck?.type === 'botiquines') vehicles = state.vehicles.slice();
+  if (activeCheck?.type === 'botiquines') vehicles = getBotiquinVehicles();
   els.checksTitle.textContent = activeCheck?.type === 'botiquines' ? `Botiquines - ${selectedDay}` : `Controles de ${selectedDay}`;
   if (!vehicles.length) {
     els.taskStack.innerHTML = '<div class="empty-state">No hay moviles programados para este dia.</div>';
@@ -316,7 +323,7 @@ function renderChecks() {
         <div class="task-head">
           <div>
             <h3>Check de botiquines</h3>
-            <p class="subcopy">Se completa por movil. Los valores ya cargados en cada check aparecen automaticamente.</p>
+            <p class="subcopy">Se completa por movil. El Movil 3 no forma parte de este control.</p>
           </div>
         </div>
         <div class="botiquin-table">
@@ -331,6 +338,9 @@ function renderChecks() {
             `;
           }).join('')}
         </div>
+        <div class="button-row botiquin-actions">
+          <button class="primary-button" data-save-botiquines type="button">Guardar PDF de botiquines en Drive</button>
+        </div>
       </article>
     `;
     els.taskStack.querySelectorAll('[data-botiquin-vehicle]').forEach(input => {
@@ -341,6 +351,7 @@ function renderChecks() {
         renderReport();
       });
     });
+    els.taskStack.querySelector('[data-save-botiquines]')?.addEventListener('click', saveCompletedChecks);
     return;
   }
 
@@ -349,8 +360,9 @@ function renderChecks() {
     const hasFluids = activeCheck?.type === 'check-fluidos';
     const checkGroup = hasFluids ? 'fluids' : 'mobile';
     const complete = isRecordComplete(record, checkGroup);
+    const outOfService = !hasFluids && Boolean(record.outOfService);
     return `
-      <article class="task-card ${complete ? 'complete' : ''}" data-task-card="${escapeAttr(vehicle)}">
+      <article class="task-card ${complete ? 'complete' : ''} ${outOfService ? 'out-of-service' : ''}" data-task-card="${escapeAttr(vehicle)}">
         <div class="task-head">
           <div>
             <h3>${escapeHtml(vehicle)}</h3>
@@ -358,6 +370,13 @@ function renderChecks() {
           </div>
           <span class="done-badge">${complete ? 'Completo' : 'Pendiente'}</span>
         </div>
+        ${hasFluids ? '' : `
+          <label class="out-of-service-toggle">
+            <input data-out-of-service="${escapeAttr(vehicle)}" type="checkbox" ${outOfService ? 'checked' : ''} />
+            <span>Movil fuera de servicio</span>
+          </label>
+        `}
+        <div class="check-fields ${outOfService ? 'hidden' : ''}">
         <div class="task-grid">
           <label>Fecha <input data-field="fecha" data-vehicle="${escapeAttr(vehicle)}" type="date" value="${escapeAttr(record.fecha || els.controlDate.value || '')}" /></label>
           <label>Chofer <input data-field="chofer" data-vehicle="${escapeAttr(vehicle)}" list="choferesList" value="${escapeAttr(record.chofer || els.responsibleName.value || '')}" /></label>
@@ -371,8 +390,9 @@ function renderChecks() {
         <label>Observaciones generales
           <textarea data-field="observaciones" data-vehicle="${escapeAttr(vehicle)}" placeholder="Escribir solo si hay novedad">${escapeHtml(record.observaciones || '')}</textarea>
         </label>
+        </div>
         <div class="button-row">
-          <button class="secondary-button" data-complete="${escapeAttr(vehicle)}" type="button">Marcar completo y subir a Drive</button>
+          <button class="secondary-button" data-complete="${escapeAttr(vehicle)}" type="button">${outOfService ? 'Enviar movil fuera de servicio' : 'Marcar completo y subir a Drive'}</button>
         </div>
       </article>
     `;
@@ -386,6 +406,25 @@ function renderChecks() {
       if (event.target.dataset.field === 'chofer') els.responsibleName.value = event.target.value;
       saveData();
       renderReport();
+    });
+  });
+
+  els.taskStack.querySelectorAll('[data-out-of-service]').forEach(input => {
+    input.addEventListener('change', event => {
+      const record = getRecord(selectedDay, event.target.dataset.outOfService);
+      record.outOfService = event.target.checked;
+      record.completed = false;
+      record.completedChecks.mobile = false;
+      if (record.outOfService) {
+        record.km = '';
+        record.botiquin = '';
+        record.chofer = '';
+        record.observaciones = '';
+        record.answers.mobile = {};
+        record.notes.mobile = {};
+      }
+      saveData();
+      renderChecks();
     });
   });
 
@@ -439,13 +478,14 @@ function renderQuestionRows(vehicle, questions, group) {
         <tbody>
         ${section.items.map(item => {
           const question = item.question;
-    const value = record.answers[group]?.[question] || 'Bien';
+    const value = record.answers[group]?.[question] || '';
     const note = record.notes[group]?.[question] || '';
     return `
       <tr class="question-row">
         <td><strong>${escapeHtml(question)}</strong></td>
         <td>
           <select data-question="${escapeAttr(question)}" data-group="${group}" data-vehicle="${escapeAttr(vehicle)}">
+            <option value="" ${value ? '' : 'selected'} disabled>Seleccionar</option>
             ${['Bien', 'Regular', 'Mal', 'N/A'].map(option => `<option value="${option}" ${option === value ? 'selected' : ''}>${option}</option>`).join('')}
           </select>
         </td>
@@ -547,6 +587,12 @@ async function completeAndUploadCheck(vehicle) {
   const record = getRecord(selectedDay, vehicle);
   const checkType = activeCheck?.type || 'check-movil';
   const checkGroup = checkType === 'check-fluidos' ? 'fluids' : 'mobile';
+  const validationMessage = validateRecordForCheck(record, vehicle, checkGroup);
+  if (validationMessage) {
+    showToast(validationMessage);
+    renderChecks();
+    return;
+  }
   if (!record.completedChecks) record.completedChecks = { mobile: false, fluids: false };
   record.completedChecks[checkGroup] = true;
   record.completed = Boolean(record.completedChecks.mobile || record.completedChecks.fluids);
@@ -572,11 +618,23 @@ async function completeAndUploadCheck(vehicle) {
   renderHistory();
   const data = await saveToScript('saveChecks', payload, `Check subido a Drive: ${vehicle}`);
   applyPdfUrls(data && data.pdfByVehicle);
-  if (data) updateLastChecksFromPayload(payload, data.pdfByVehicle);
+  if (data) {
+    updateLastChecksFromPayload(payload, data.pdfByVehicle);
+    delete state.records[selectedDay][vehicle];
+    activeCheck = null;
+    openTab('agenda');
+  }
   renderAll();
 }
 
 async function saveCompletedChecks() {
+  if (activeCheck?.type === 'botiquines') {
+    const missingVehicle = getBotiquinVehicles().find(vehicle => !getRecord(selectedDay, vehicle).botiquin.trim());
+    if (missingVehicle) {
+      showToast(`Completa el botiquin / precinto de ${missingVehicle}.`);
+      return;
+    }
+  }
   let payload;
   try {
     payload = buildPayload({ checkType: activeCheck?.type || 'day' });
@@ -588,7 +646,15 @@ async function saveCompletedChecks() {
   renderHistory();
   const data = await saveToScript('saveChecks', payload, 'Controles guardados en Drive.');
   applyPdfUrls(data && data.pdfByVehicle);
-  if (data) updateLastChecksFromPayload(payload, data.pdfByVehicle);
+  if (data) {
+    if (payload.checkType === 'botiquines') {
+      getBotiquinVehicles().forEach(vehicle => { getRecord(selectedDay, vehicle).botiquin = ''; });
+      activeCheck = null;
+      openTab('agenda');
+    } else {
+      updateLastChecksFromPayload(payload, data.pdfByVehicle);
+    }
+  }
   renderAll();
 }
 
@@ -650,7 +716,7 @@ function buildPayload(options = {}) {
   let vehicles = agenda.mobileChecks.filter(vehicle => state.vehicles.includes(vehicle));
   const checkType = options.checkType || activeCheck?.type || 'day';
   const activeVehicle = options.activeVehicle || activeCheck?.vehicle || '';
-  if (checkType === 'botiquines') vehicles = state.vehicles.slice();
+  if (checkType === 'botiquines') vehicles = getBotiquinVehicles();
   if (checkType === 'check-movil' || checkType === 'check-fluidos') vehicles = [activeVehicle];
   if (Array.isArray(options.vehicles)) vehicles = options.vehicles.filter(vehicle => state.vehicles.includes(vehicle));
   const firstRecord = vehicles.map(vehicle => getRecord(selectedDay, vehicle)).find(record => record.fecha || record.chofer) || {};
@@ -707,6 +773,7 @@ function mergeConfig(config) {
   if (config.novedades) next.novedades = normalizeNovedades(config.novedades, next.vehicles);
   if (Array.isArray(config.choferes)) next.choferes = config.choferes;
   if (config.lastChecks) next.lastChecks = normalizeLastChecks(config.lastChecks, next.vehicles);
+  if (config.driveFolderUrl) next.driveFolderUrl = config.driveFolderUrl;
   next.records = state.records || {};
   return next;
 }
@@ -826,6 +893,7 @@ function getRecord(day, vehicle) {
       chofer: '',
       fecha: els.controlDate.value || '',
       observaciones: '',
+      outOfService: false,
       completed: false,
       completedAt: '',
       completedChecks: { mobile: false, fluids: false },
@@ -841,31 +909,46 @@ function getRecord(day, vehicle) {
     };
   }
   if (!state.records[day][vehicle].completedAtByType) state.records[day][vehicle].completedAtByType = {};
-  applyLastCheckDefaults(state.records[day][vehicle], vehicle);
   return state.records[day][vehicle];
 }
 
-function applyLastCheckDefaults(record, vehicle) {
-  const last = state.lastChecks?.[vehicle];
-  if (!last || record.loadedFromLastCheck) return;
-  if (!record.km) record.km = last.km || '';
-  if (!record.botiquin) record.botiquin = last.botiquin || '';
-  if (!record.chofer) record.chofer = last.chofer || '';
-  copyDefaultAnswers(record, 'mobile', last.mobile);
-  copyDefaultAnswers(record, 'fluids', last.fluids);
-  record.loadedFromLastCheck = true;
+function startFreshCheck(type, vehicle) {
+  activeCheck = { type, vehicle };
+  if (!state.records[selectedDay]) state.records[selectedDay] = {};
+  state.records[selectedDay][vehicle] = createEmptyRecord();
+  saveData();
 }
 
-function copyDefaultAnswers(record, group, lastGroup) {
-  if (!lastGroup) return;
-  if (!record.answers[group]) record.answers[group] = {};
-  if (!record.notes[group]) record.notes[group] = {};
-  Object.entries(lastGroup.answers || {}).forEach(([question, value]) => {
-    if (!record.answers[group][question]) record.answers[group][question] = value || 'Bien';
-  });
-  Object.entries(lastGroup.notes || {}).forEach(([question, value]) => {
-    if (!record.notes[group][question]) record.notes[group][question] = value || '';
-  });
+function createEmptyRecord() {
+  return {
+    km: '',
+    botiquin: '',
+    chofer: '',
+    fecha: els.controlDate.value || '',
+    observaciones: '',
+    outOfService: false,
+    completed: false,
+    completedAt: '',
+    completedChecks: { mobile: false, fluids: false },
+    completedAtByType: {},
+    answers: { mobile: {}, fluids: {} },
+    notes: { mobile: {}, fluids: {} }
+  };
+}
+
+function getBotiquinVehicles() {
+  return state.vehicles.filter(vehicle => !BOTIQUIN_EXCLUDED_VEHICLES.includes(vehicle));
+}
+
+function validateRecordForCheck(record, vehicle, group) {
+  if (record.outOfService && group === 'mobile') return '';
+  if (!record.fecha) return 'Completa la fecha antes de enviar.';
+  if (!record.chofer.trim()) return 'Completa el chofer antes de enviar.';
+  if (!record.km.trim()) return 'Completa los kilometros antes de enviar.';
+  if (!record.botiquin.trim()) return 'Completa el botiquin / precinto antes de enviar.';
+  const questions = group === 'fluids' ? (state.fluidQuestions || fluidQuestions) : getQuestions(vehicle);
+  const missing = questions.find(item => !record.answers[group]?.[item.question || item]);
+  return missing ? `Falta responder: ${missing.question || missing}` : '';
 }
 
 function updateLastChecksFromPayload(payload, pdfByVehicle = {}) {

@@ -222,6 +222,52 @@ textarea {
   gap: 10px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.archive-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.out-of-service-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 2px solid #b42318;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: #8a1711;
+  font-weight: 900;
+}
+
+.out-of-service-toggle input {
+  width: 22px;
+  height: 22px;
+}
+
+.task-card.out-of-service {
+  border-color: #b42318;
+  background: #fff8f7;
+}
+
+.botiquin-actions {
+  margin-top: 16px;
+}
+
 .ghost-button,
 .secondary-button,
 .primary-button,

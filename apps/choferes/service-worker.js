@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-choferes-v18';
+const CACHE_NAME = 'sbvp-choferes-v19';
 const APP_ASSETS = [
   './',
   './index.html',
@@ -14,7 +14,9 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+    caches.keys().then(keys => Promise.all(
+      keys.filter(key => key.startsWith('sbvp-choferes-') && key !== CACHE_NAME).map(key => caches.delete(key))
+    ))
   );
 });
 

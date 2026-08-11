@@ -11,8 +11,10 @@ const SHEET_REGISTROS = 'REGISTROS_CHECKS';
 const SHEET_REPORTES = 'REGISTROS_REPORTES';
 const SHEET_NOVEDADES = 'NOVEDADES_CHOFERES';
 const SHEET_CHOFERES = 'CHOFERES';
+const SHEET_BOTIQUINES = 'REGISTROS_BOTIQUINES';
 
 const VEHICLES = ['MOVIL 3', 'MOVIL 5', 'MOVIL 6', 'MOVIL 7', 'MOVIL 8', 'MOVIL 9', 'MOVIL 11', 'MOVIL 12', 'MOVIL 19', 'MOVIL 24', 'MOVIL 26', 'MOVIL 27'];
+const BOTIQUIN_EXCLUDED_VEHICLES = ['MOVIL 3'];
 const MONDAY_CHECKS = ['MOVIL 12', 'MOVIL 19', 'MOVIL 24', 'MOVIL 27', 'MOVIL 3'];
 const DAYS = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
 const SECTION_ORDER = ['CABINA', 'BOMBA', 'LUCES', 'NEUMATICOS', 'FLUIDOS', 'FLUIDOS Y NEUMATICOS', 'OBSERVACIONES'];
@@ -126,7 +128,8 @@ function getConfig_() {
     fluidQuestions: readFluidQuestions_(ss),
     novedades: readNovedadesOrigen_(ss),
     choferes: readChoferes_(ss),
-    lastChecks: readLastChecks_(ss)
+    lastChecks: readLastChecks_(ss),
+    driveFolderUrl: `https://drive.google.com/drive/folders/${ROOT_FOLDER_ID}`
   };
 }
 
@@ -177,6 +180,9 @@ function setupRegistroSheets_(ss) {
   ensureHeaders_(getOrCreateSheet_(ss, SHEET_NOVEDADES), [
     'Fecha carga', 'Fecha control', 'Dia', 'Chofer', 'Movil', 'Tipo',
     'Elemento', 'Condicion', 'Observacion', 'PDF'
+  ]);
+  ensureHeaders_(getOrCreateSheet_(ss, SHEET_BOTIQUINES), [
+    'Fecha carga', 'Fecha control', 'Dia', 'Chofer', 'Movil', 'Botiquin / precinto', 'PDF'
   ]);
 }
 
@@ -334,6 +340,7 @@ function readLastChecks_(ss) {
 function saveChecks_(payload) {
   if (!payload.date || !payload.day) throw new Error('Faltan fecha o dia');
   setupWorkbook();
+  if (payload.checkType === 'botiquines') return saveBotiquines_(payload);
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const now = new Date();
   const pdfByVehicle = {};
@@ -391,6 +398,10 @@ function saveMobileCheckPdf_(payload, vehicle, record, now) {
 }
 
 function appendRegistroRowsForVehicle_(rows, now, payload, vehicle, record, pdfUrl) {
+  if (record.outOfService) {
+    rows.push([now, payload.date || '', payload.day || '', payload.responsible || '', vehicle, 'MOVIL', '', '', '', 'Movil fuera de servicio', 'SI', '', 'SI', pdfUrl]);
+    return;
+  }
   const includeMobile = shouldIncludeMobile_(payload, record);
   const includeFluids = shouldIncludeFluids_(payload, record, vehicle);
   const mobileQuestions = (payload.questions && payload.questions[vehicle]) || MOBILE_QUESTIONS_BY_VEHICLE[vehicle] || FALLBACK_MOBILE_QUESTIONS;
@@ -402,6 +413,10 @@ function appendRegistroRowsForVehicle_(rows, now, payload, vehicle, record, pdfU
 }
 
 function appendNovedadesRowsForVehicle_(rows, now, payload, vehicle, record, pdfUrl) {
+  if (record.outOfService) {
+    rows.push([now, payload.date || '', payload.day || '', payload.responsible || '', vehicle, 'MOVIL', 'Movil fuera de servicio', 'SI', '', pdfUrl]);
+    return;
+  }
   if (shouldIncludeMobile_(payload, record)) collectNoveltyRows_(rows, now, payload, vehicle, 'MOVIL', record.answers && record.answers.mobile, record.notes && record.notes.mobile, pdfUrl);
   if (shouldIncludeFluids_(payload, record, vehicle)) collectNoveltyRows_(rows, now, payload, vehicle, 'FLUIDOS', record.answers && record.answers.fluids, record.notes && record.notes.fluids, pdfUrl);
   if (record.observaciones) rows.push([now, payload.date || '', payload.day || '', payload.responsible || '', vehicle, 'GENERAL', 'Observaciones generales', '', record.observaciones, pdfUrl]);
@@ -413,7 +428,7 @@ function appendQuestionRows_(rows, now, payload, vehicle, record, type, question
     rows.push([
       now, payload.date || '', payload.day || '', payload.responsible || '', vehicle, type,
       record.km || '', record.botiquin || '', record.chofer || '', question,
-      (answers && answers[question]) || 'Bien',
+      (answers && answers[question]) || '',
       (notes && notes[question]) || '',
       record.completed ? 'SI' : '',
       pdfUrl
@@ -444,6 +459,7 @@ function collectNoveltyRows_(rows, now, payload, vehicle, type, answers, notes, 
 }
 
 function shouldSaveRecord_(payload, record, vehicle) {
+  if (record.outOfService) return true;
   const checkType = payload.checkType || 'day';
   const flags = completionFlags_(record);
   if (checkType === 'check-fluidos') return flags.fluids || Boolean(record.completed);
@@ -482,7 +498,9 @@ function buildMobileCheckPdf_(payload, vehicle, record, now) {
   const includeFluids = shouldIncludeFluids_(payload, record, vehicle);
   const mobileQuestions = (payload.questions && payload.questions[vehicle]) || MOBILE_QUESTIONS_BY_VEHICLE[vehicle] || FALLBACK_MOBILE_QUESTIONS;
   const fluidQuestions = includeFluids ? (payload.fluidQuestions || FLUID_QUESTIONS) : [];
-  const sectionsHtml = (includeMobile ? buildPdfQuestionSections_(mobileQuestions, 'MOVIL', record.answers && record.answers.mobile, record.notes && record.notes.mobile) : '')
+  const sectionsHtml = record.outOfService
+    ? '<div class="out-of-service">MOVIL FUERA DE SERVICIO</div>'
+    : (includeMobile ? buildPdfQuestionSections_(mobileQuestions, 'MOVIL', record.answers && record.answers.mobile, record.notes && record.notes.mobile) : '')
     + buildPdfQuestionSections_(fluidQuestions, 'FLUIDOS Y NEUMATICOS', record.answers && record.answers.fluids, record.notes && record.notes.fluids);
   const title = checkType === 'check-fluidos' || (!includeMobile && includeFluids) ? 'Control de fluidos y neumaticos' : 'Check de movil';
   const generatedText = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
@@ -503,6 +521,7 @@ function buildMobileCheckPdf_(payload, vehicle, record, now) {
     th,td{border:1px solid #ccd5df;padding:4px;vertical-align:top}
     th{background:#f4c542;color:#151a22;text-align:left}
     tr:nth-child(even) td{background:#f8fafc}
+    .out-of-service{margin:24px 0;padding:24px;border:3px solid #b42318;background:#fff1f0;color:#8a1711;text-align:center;font-size:22px;font-weight:bold}
   </style></head><body>
     <div class="top">
       ${getLogoHtml_()}
@@ -524,7 +543,7 @@ function buildPdfQuestionSections_(questions, type, answers, notes) {
   return groupQuestionItems_(questions).map(group => {
     const rows = group.items.map(item => {
       const question = item.question;
-      return `<tr><td>${esc(question)}</td><td>${esc((answers && answers[question]) || 'Bien')}</td><td>${esc((notes && notes[question]) || '')}</td></tr>`;
+      return `<tr><td>${esc(question)}</td><td>${esc((answers && answers[question]) || '')}</td><td>${esc((notes && notes[question]) || '')}</td></tr>`;
     }).join('');
     return `<div class="section-title">${esc(type)} - ${esc(group.section)}</div><table><thead><tr><th>Elemento</th><th>Condicion</th><th>Observacion</th></tr></thead><tbody>${rows}</tbody></table>`;
   }).join('');
@@ -594,6 +613,43 @@ function buildReportFilename_(payload, now) {
   return `Novedades_${String(payload.day || 'Control')}_${stamp}.pdf`;
 }
 
+function saveBotiquines_(payload) {
+  const now = new Date();
+  const root = DriveApp.getFolderById(ROOT_FOLDER_ID);
+  const folder = getOrCreateFolder_(root, 'BOTIQUINES');
+  const vehicles = (payload.vehicles || []).filter(vehicle => BOTIQUIN_EXCLUDED_VEHICLES.indexOf(vehicle) < 0);
+  if (!vehicles.length) throw new Error('No hay moviles para guardar en el control de botiquines');
+  const missingVehicle = vehicles.find(vehicle => !String(((payload.records && payload.records[vehicle]) || {}).botiquin || '').trim());
+  if (missingVehicle) throw new Error(`Falta completar el botiquin / precinto de ${missingVehicle}`);
+  const filename = `Botiquines_${Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd_HH-mm')}.pdf`;
+  const file = folder.createFile(buildBotiquinesPdf_(payload, now).setName(filename));
+  const rows = vehicles.map(vehicle => {
+    const record = (payload.records && payload.records[vehicle]) || {};
+    return [now, payload.date || '', payload.day || '', payload.responsible || '', vehicle, record.botiquin || '', file.getUrl()];
+  });
+  if (rows.length) {
+    const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_BOTIQUINES);
+    sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  }
+  return { savedRows: rows.length, pdfUrl: file.getUrl(), filename };
+}
+
+function buildBotiquinesPdf_(payload, now) {
+  const rows = (payload.vehicles || []).filter(vehicle => BOTIQUIN_EXCLUDED_VEHICLES.indexOf(vehicle) < 0).map(vehicle => {
+    const record = (payload.records && payload.records[vehicle]) || {};
+    return `<tr><td>${esc(vehicle)}</td><td>${esc(record.botiquin || '')}</td></tr>`;
+  }).join('');
+  const generatedText = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+  const html = `<html><head><style>
+    @page{size:A4 portrait;margin:12mm}body{font-family:Arial,sans-serif;color:#18202a}h1{font-size:20px;border-bottom:4px solid #b51f2d;padding-bottom:8px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccd5df;padding:8px;text-align:left}th{background:#f4c542}.meta{margin-bottom:14px;font-size:11px}
+  </style></head><body>
+    <h1>Control de botiquines</h1>
+    <div class="meta"><b>Fecha:</b> ${esc(payload.dateText || payload.date || '')} &nbsp; <b>Chofer:</b> ${esc(payload.responsible || '')} &nbsp; <b>Generado:</b> ${esc(generatedText)}</div>
+    <table><thead><tr><th>Movil</th><th>Botiquin / precinto</th></tr></thead><tbody>${rows}</tbody></table>
+  </body></html>`;
+  return HtmlService.createHtmlOutput(html).getBlob().getAs(MimeType.PDF);
+}
+
 function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -618,6 +674,7 @@ function setupDriveFolders_() {
   const root = DriveApp.getFolderById(ROOT_FOLDER_ID);
   VEHICLES.forEach(vehicle => getOrCreateFolder_(root, vehicle));
   getOrCreateFolder_(root, 'NOVEDADES');
+  getOrCreateFolder_(root, 'BOTIQUINES');
 }
 
 function getLogoHtml_() {
