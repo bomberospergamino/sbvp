@@ -11,6 +11,7 @@ $('fitBtn').addEventListener('click',fitAll);$('locateBtn').addEventListener('cl
 $('changeLocationBtn').addEventListener('click',toggleOriginSelection);$('clearOriginBtn').addEventListener('click',clearOrigin);
 $('refreshBtn').addEventListener('click',()=>loadHydrants(true));$('searchInput').addEventListener('input',renderList);
 $('deleteBtn').addEventListener('click',deleteCurrent);
+$('closeEditorBtn').addEventListener('click',()=>editor.close());$('cancelEditorBtn').addEventListener('click',()=>editor.close());
 
 map.on('click',({latlng})=>{
   if(selectingOrigin){setOrigin(latlng.lat,latlng.lng,'Ubicación elegida en el mapa');stopModes();return}
