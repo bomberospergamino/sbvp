@@ -1,11 +1,15 @@
-const CACHE_NAME = 'sbvp-home-v12-choferes';
+const CACHE_NAME = 'sbvp-home-v14-hidrantes-api';
 const APP_SHELL = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.webmanifest',
-  './logo-sbvp.png'
+  './logo-sbvp.png',
+  './apps/hidrantes/',
+  './apps/hidrantes/index.html',
+  './apps/hidrantes/styles.css',
+  './apps/hidrantes/app.js'
 ];
 
 self.addEventListener('install', (event) => {
