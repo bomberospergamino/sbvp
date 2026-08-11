@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SBVP Control Diario</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <button class="history-top-button" id="openHistoryTop" type="button">Historico</button>
+      <div>
+        <p class="kicker">SBVP</p>
+        <h1>Control Diario</h1>
+      </div>
+      <div class="status-pill" id="syncStatus">Conectando con planilla...</div>
+    </header>
+
+    <main class="shell">
+      <section class="identity-panel" aria-labelledby="identityTitle">
+        <div>
+          <h2 id="identityTitle">Responsable del control</h2>
+        </div>
+        <div class="field-grid">
+          <label>
+            Fecha
+            <input id="controlDate" type="date" />
+          </label>
+          <label class="wide">
+            Responsable de la guardia
+            <input id="responsibleSearch" list="personnelList" placeholder="Buscar por apellido o nombre" autocomplete="off" />
+            <datalist id="personnelList"></datalist>
+          </label>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="Secciones del control">
+        <button class="tab active" data-tab="lugares">Lugares</button>
+        <button class="tab" data-tab="moviles">Moviles</button>
+        <button class="tab" data-tab="planillas">Planillas firmadas</button>
+        <button class="tab" data-tab="choferes">Choferes</button>
+        <button class="tab" data-tab="asistencia">Asistencia</button>
+        <button class="tab" data-tab="firmas">Partes sin firmar</button>
+      </nav>
+
+      <section class="tab-panel active" id="tab-lugares">
+        <div class="section-head">
+          <h2>Limpieza de lugares</h2>
+          <span id="lugaresCount" class="mini-count">0/0</span>
+        </div>
+        <div class="card-stack" id="placeChecks"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-moviles">
+        <div class="section-head">
+          <h2>Limpieza de moviles</h2>
+          <span id="movilesCount" class="mini-count">0/0</span>
+        </div>
+        <div class="card-stack" id="vehicleChecks"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-planillas">
+        <div class="section-head">
+          <h2>Planillas firmadas</h2>
+          <span id="planillasCount" class="mini-count">0/0</span>
+        </div>
+        <div class="card-stack" id="sheetChecks"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-choferes">
+        <div class="section-head">
+          <h2>Check de choferes</h2>
+          <span id="choferesCount" class="mini-count">0/0</span>
+        </div>
+        <div class="card-stack" id="driverChecks"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-asistencia">
+        <div class="section-head">
+          <div>
+            <h2>Asistencia de personas</h2>
+            <p class="subcopy">Indica cuantas personas vas a cargar y completa cada fila.</p>
+          </div>
+          <div class="attendance-tools">
+            <label>
+              Cantidad
+              <input id="attendanceAmount" type="number" min="0" max="80" value="0" />
+            </label>
+            <button class="ghost-button" id="setAttendanceAmount" type="button">Generar</button>
+          </div>
+        </div>
+        <div class="card-stack" id="attendanceRows"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-firmas">
+        <div class="section-head">
+          <div>
+            <h2>Control de partes sin firmar</h2>
+            <p class="subcopy">Datos leidos desde la hoja CONTROL_FIRMAS.</p>
+          </div>
+        </div>
+        <form class="manual-part-form" id="manualPartForm">
+          <label>
+            Parte
+            <input id="manualPartNumber" placeholder="Ej. 428/26" />
+          </label>
+          <label>
+            Fecha
+            <input id="manualPartDate" type="date" />
+          </label>
+          <label>
+            Persona a cargo
+            <input id="manualPartLeader" list="personnelList" placeholder="Buscar persona" />
+          </label>
+          <label>
+            Operador
+            <input id="manualPartOperator" list="personnelList" placeholder="Buscar persona" />
+          </label>
+          <button class="ghost-button" type="submit">Agregar parte</button>
+        </form>
+        <div class="card-stack" id="signatureRows"></div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-historico">
+        <div class="section-head">
+          <div>
+            <h2>Historico local</h2>
+            <p class="subcopy">Se conserva durante 60 dias en este navegador.</p>
+          </div>
+          <button class="ghost-button danger" id="clearHistory" type="button">Limpiar</button>
+        </div>
+        <div class="history-list" id="historyRows"></div>
+      </section>
+    </main>
+
+    <footer class="actionbar">
+      <div class="progress-block">
+        <strong id="overallProgress">0% completo</strong>
+        <span id="overallDetail">Completa los controles para finalizar.</span>
+      </div>
+      <div class="action-buttons">
+        <button id="saveDraft" class="secondary-button" type="button">Guardar borrador</button>
+        <button id="finishControl" class="primary-button" type="button">Finalizar y generar PDF</button>
+      </div>
+    </footer>
+
+    <div class="completion-toast" id="completionToast" role="status" aria-live="polite">
+      <div class="completion-check">✓</div>
+      <strong>Completó el check</strong>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

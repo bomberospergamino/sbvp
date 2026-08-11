@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SBVP Control de Choferes</title>
+    <link rel="manifest" href="./manifest.webmanifest?v=18" />
+    <link rel="stylesheet" href="./styles.css?v=18" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="./logo-sbvp.png" alt="Logo Bomberos Voluntarios Pergamino" />
+        <div>
+          <p class="kicker">Sociedad Bomberos Voluntarios Pergamino</p>
+          <h1>Control de Choferes</h1>
+        </div>
+      </div>
+      <div class="status-pill" id="syncStatus">Modo local</div>
+    </header>
+
+    <main class="shell">
+      <section class="identity-panel hidden">
+        <div>
+          <h2>Datos del control</h2>
+          <p class="subcopy">Elegir dia, completar los moviles que correspondan y generar el reporte.</p>
+        </div>
+        <div class="field-grid">
+          <label>
+            Fecha
+            <input id="controlDate" type="date" />
+          </label>
+          <label>
+            Chofer
+            <input id="responsibleName" placeholder="Apellido y nombre" autocomplete="off" />
+          </label>
+        </div>
+      </section>
+
+      <section class="config-panel hidden" id="configPanel">
+        <div>
+          <h2>Conexion con planilla</h2>
+          <p class="subcopy">Pegar la URL publicada de Apps Script. La agenda y las preguntas se leen desde el Excel/Google Sheet.</p>
+        </div>
+        <label>
+          URL Apps Script
+          <input id="scriptUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+        </label>
+        <div class="button-row">
+          <button class="secondary-button" id="saveConfig" type="button">Guardar URL</button>
+          <button class="ghost-button" id="loadConfig" type="button">Actualizar agenda</button>
+          <button class="ghost-button" id="clearConfig" type="button">Usar solo local</button>
+        </div>
+      </section>
+
+      <nav class="tabs hidden" aria-label="Secciones">
+        <button class="tab active" data-tab="agenda" type="button">Agenda</button>
+        <button class="tab" data-tab="checks" type="button">Controles</button>
+        <button class="tab" data-tab="reporte" type="button">Novedades</button>
+        <button class="tab" data-tab="historial" type="button">Historial</button>
+      </nav>
+
+      <section class="tab-panel active" id="tab-agenda">
+        <div class="section-head">
+          <div>
+            <h2>Elegir dia</h2>
+          </div>
+          <button class="ghost-button" id="resetData" type="button">Restaurar base local</button>
+        </div>
+        <div class="days-grid" id="daysGrid"></div>
+        <div class="agenda-detail" id="agendaDetail"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-checks">
+        <div class="section-head">
+          <div>
+            <h2 id="checksTitle">Controles del dia</h2>
+            <p class="subcopy">Cada movil se registra por separado. Km y botiquin se piden siempre.</p>
+          </div>
+          <button class="primary-button" id="saveDay" type="button">Subir completados a Drive</button>
+        </div>
+        <div class="task-stack" id="taskStack"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-reporte">
+        <div class="section-head no-print">
+          <div>
+            <h2>Novedades</h2>
+          </div>
+          <div class="button-row">
+            <button class="secondary-button" id="saveReport" type="button">Guardar novedades</button>
+            <button class="primary-button" id="printSheet" type="button">Imprimir / PDF</button>
+          </div>
+        </div>
+        <article class="print-page" id="printPage"></article>
+      </section>
+
+      <section class="tab-panel" id="tab-historial">
+        <div class="section-head">
+          <div>
+            <h2>Historial local</h2>
+            <p class="subcopy">Queda guardado en este navegador para consulta rapida.</p>
+          </div>
+          <button class="ghost-button danger" id="clearHistory" type="button">Limpiar historial</button>
+        </div>
+        <div class="history-list" id="historyList"></div>
+      </section>
+    </main>
+
+    <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js?v=18"></script>
+  </body>
+</html>

@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SBVP | Brigadas</title>
+    <link rel="stylesheet" href="styles.css?v=brigadas-mobile-3">
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+    <script defer src="app.js?v=brigadas-calendario-14"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img class="logo" src="assets/brigadas/logo-sbvp.png" alt="SBVP">
+        <div>
+          <p class="eyebrow">Sociedad Bomberos Voluntarios Pergamino</p>
+          <h1>Brigadas</h1>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="reloadSheetButton" class="icon-button small-refresh" title="Actualizar Sheets" aria-label="Actualizar Sheets">↻</button>
+        <input id="workbookInput" class="hidden" type="file" accept=".xlsx,.xls,.csv">
+        <button id="adminButton" class="admin-mini">Admin</button>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <aside class="sidebar hidden">
+        <div class="status-panel">
+          <span id="dataStatus">Sin Excel cargado. Usando estructura base.</span>
+        </div>
+        <nav>
+          <button class="nav-button active" data-view="brigadasView">Inicio</button>
+          <button class="nav-button" data-view="calendarioView">Calendario de encuentros</button>
+        </nav>
+      </aside>
+
+      <section class="content">
+        <section id="brigadasView" class="view active">
+          <div class="home-status hidden">
+            <span id="dataStatusHome">Sin Excel cargado. Usando estructura base.</span>
+            <div class="hero-count">
+              <strong id="homeCoveredCount">0 / 7</strong>
+              <span>encuentros cubiertos</span>
+            </div>
+          </div>
+          <div id="brigadeCards" class="brigade-grid"></div>
+          <div class="calendar-entry">
+            <button class="primary" data-view-jump="calendarioView">Abrir calendario de actividades</button>
+            <button id="homeScheduleButton" class="success-button"><span>+</span> Programar encuentro</button>
+          </div>
+          <div id="brigadeDetail" class="brigade-detail hidden">
+            <div class="panel-head">
+              <div>
+                <h2 id="selectedBrigadeTitle">Brigada</h2>
+                <p id="selectedBrigadeMeta"></p>
+              </div>
+              <div class="button-row">
+                <button id="backToBrigadesButton">Volver</button>
+              </div>
+              <div class="brigade-menu">
+                <button data-brigade-panel="membersPanel">Integrantes</button>
+                <button data-brigade-panel="attendancePanel">Asistencia</button>
+                <button data-brigade-panel="equipmentPanel">Equipamiento</button>
+                <button data-brigade-panel="certificatesPanel">Certificaciones</button>
+                <button data-brigade-panel="bibliographyPanel">Bibliografía complementaria</button>
+                <button id="downloadLogoButton">Logo (descargar)</button>
+              </div>
+            </div>
+            <p id="brigadeActionStatus" class="notice hidden"></p>
+            <div id="membersPanel" class="brigade-panel active">
+              <div id="attendanceWarning" class="notice hidden"></div>
+              <div id="membersList" class="simple-list"></div>
+              <div class="count-footer" id="membersCount">Integrantes: 0</div>
+              <div class="detail-actions">
+                <button id="membersDownloadButton">Descargar listado</button>
+              </div>
+            </div>
+            <div id="attendancePanel" class="brigade-panel">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Integrante</th>
+                      <th>Legajo</th>
+                      <th>Jerarquía</th>
+                      <th>P</th>
+                      <th>A</th>
+                      <th>Just.</th>
+                      <th>Obs.</th>
+                    </tr>
+                  </thead>
+                  <tbody id="membersTable"></tbody>
+                </table>
+              </div>
+              <div class="detail-actions">
+                <button id="saveAttendanceButton" class="success-button"><span>+</span> Descargar y guardar</button>
+              </div>
+            </div>
+            <div id="equipmentPanel" class="brigade-panel">
+              <div id="equipmentContainer"></div>
+              <div class="detail-actions">
+                <button id="saveEquipmentCheckButton" class="success-button"><span>+</span> Descargar y guardar</button>
+                <button id="downloadEquipmentPdfButton">Descargar PDF inventario</button>
+                <button id="downloadEquipmentExcelButton">Descargar Excel inventario</button>
+              </div>
+            </div>
+            <div id="certificatesPanel" class="brigade-panel">
+              <div class="certificate-card">
+                <h3>¿Realizaste una capacitación de esta especialidad?</h3>
+                <p>Cargá tu certificado para que sea agregado a tu legajo personal.</p>
+                <label>Integrante
+                  <select id="certificateMember"></select>
+                </label>
+                <label>Nombre de la capacitación
+                  <input id="certificateTitle" type="text" placeholder="Ej: Curso, jornada, entrenamiento...">
+                </label>
+                <label>Certificado
+                  <input id="certificateFile" type="file" accept=".pdf,image/*">
+                </label>
+                <button id="sendCertificateButton" class="success-button"><span>+</span> Enviar certificado</button>
+              </div>
+            </div>
+            <div id="bibliographyPanel" class="brigade-panel">
+              <div id="bibliographyLinks" class="simple-list"></div>
+              <p class="notice">Los enlaces se cargan desde la columna <strong>bibliografia_url</strong> de CONFIG_BRIGADAS. Podés poner uno o varios links separados por coma o salto de línea.</p>
+            </div>
+          </div>
+          <div class="section-head compact">
+            <div>
+              <h2>Calendario de actividades</h2>
+              <p id="homeCalendarCounter">Encuentros mensuales cubiertos: 0 / 7</p>
+            </div>
+            <button data-view-jump="calendarioView">Ver calendario completo</button>
+          </div>
+          <div id="homeCalendarExport" class="calendar-export mini-calendar">
+            <div class="calendar-title">
+              <span>Brigadas</span>
+              <strong id="homeCalendarTitle"></strong>
+            </div>
+            <div id="homeCalendarGrid" class="calendar-grid poster-grid"></div>
+            <div id="homeMissingMeetings" class="missing-box"></div>
+          </div>
+        </section>
+
+        <section id="calendarioView" class="view">
+          <div class="section-head">
+            <div>
+              <h1>Calendario de encuentros</h1>
+              <p id="calendarCounter">Encuentros mensuales cubiertos: 0 / 7</p>
+            </div>
+            <div class="button-row">
+              <button id="prevMonthButton" class="icon-button" aria-label="Mes anterior">‹</button>
+              <button id="todayButton">Mes actual</button>
+              <button id="nextMonthButton" class="icon-button" aria-label="Mes siguiente">›</button>
+              <button id="scheduleMeetingButton" class="success-button"><span>+</span> Programar encuentro</button>
+            </div>
+          </div>
+          <div id="calendarExport" class="calendar-export">
+            <div class="calendar-title">
+              <span>Brigadas</span>
+              <strong id="calendarTitle"></strong>
+            </div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+            <div class="legend">
+              <span><i class="programado"></i>Programado</span>
+              <span><i class="realizado"></i>Realizado</span>
+              <span><i class="suspendido"></i>Suspendido</span>
+              <span><i class="reprogramado"></i>Reprogramado</span>
+              <span><i class="pendiente"></i>Pendiente</span>
+              <span><i class="falta"></i>Falta programar</span>
+            </div>
+            <div id="missingMeetings" class="missing-box"></div>
+          </div>
+          <div class="calendar-actions-bottom">
+            <button id="downloadCalendarButton" class="primary">Descargar PNG</button>
+            <button id="printCalendarButton">Imprimir</button>
+          </div>
+        </section>
+
+        <section id="adminView" class="view">
+          <div class="section-head">
+            <div>
+              <h1>Admin Brigadas</h1>
+              <p>Resumen mensual de cumplimiento, asistencia, necesidades y equipamiento.</p>
+            </div>
+            <div class="button-row">
+              <button id="exportCsvButton">Exportar CSV</button>
+              <button id="exportAdminPdfButton">Exportar PDF</button>
+            </div>
+          </div>
+          <div class="filters">
+            <label>Desde <input id="adminDateFrom" type="date"></label>
+            <label>Hasta <input id="adminDateTo" type="date"></label>
+            <label>Brigada <select id="adminBrigadeFilter"></select></label>
+            <label>Estado <select id="adminStateFilter"></select></label>
+            <label><input id="onlyMissingFilter" type="checkbox"> Solo faltantes</label>
+            <label><input id="onlyHighFilter" type="checkbox"> Alta prioridad</label>
+          </div>
+          <div id="adminKpis" class="kpi-grid"></div>
+          <div class="work-panel">
+            <div class="panel-head">
+              <h2>Cumplimiento mensual</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Brigada</th>
+                    <th>Encuentro mensual</th>
+                    <th>Encuentros validos</th>
+                    <th>Total asistencias</th>
+                    <th>Presentes</th>
+                    <th>Ausentes</th>
+                    <th>Justificados</th>
+                    <th>% asistencia</th>
+                    <th>Checks</th>
+                    <th>Necesidades</th>
+                    <th>Estado general</th>
+                  </tr>
+                </thead>
+                <tbody id="adminTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="work-panel">
+            <div class="panel-head">
+              <h2>Alertas operativas</h2>
+            </div>
+            <div id="alertsList" class="alerts"></div>
+          </div>
+          <div class="work-panel">
+            <div class="panel-head">
+              <h2>Eventos del calendario</h2>
+              <button id="adminNewEventButton" class="success-button"><span>+</span> Programar encuentro</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Brigada</th>
+                    <th>Estado</th>
+                    <th>Tema</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="adminEventsTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="adminDialog" class="modal">
+      <form method="dialog" id="adminForm">
+        <h2>Admin Brigadas</h2>
+        <label>Clave de administracion
+          <input id="adminPassword" type="password" autocomplete="current-password">
+        </label>
+        <p id="adminError" class="error hidden">Clave incorrecta</p>
+        <div class="button-row right">
+          <button value="cancel">Cancelar</button>
+          <button id="adminSubmit" class="primary" value="default">Ingresar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="scheduleDialog" class="modal">
+      <form method="dialog" id="scheduleForm">
+        <h2>Programar encuentro</h2>
+        <label>Brigada
+          <select id="scheduleBrigade" required></select>
+        </label>
+        <label>Fecha
+          <input id="scheduleDate" type="date" required>
+        </label>
+        <label>Hora de inicio
+          <input id="scheduleTime" type="time" required>
+        </label>
+        <label>Tema
+          <input id="scheduleTopic" type="text" placeholder="Capacitacion, practica, revision...">
+        </label>
+        <label>Responsable
+          <input id="scheduleResponsible" type="text" placeholder="Encargado / instructor">
+        </label>
+        <p id="scheduleMessage" class="notice hidden"></p>
+        <div class="button-row right">
+          <button value="cancel">Cancelar</button>
+          <button id="scheduleSubmit" class="primary" value="default">Agendar</button>
+        </div>
+      </form>
+    </dialog>
+    <div id="appToast" class="app-toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

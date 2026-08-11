@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reporte | Bomberos Pergamino</title>
+  <style>
+    :root{
+      --navy:#062f45;
+      --navy2:#0a3a53;
+      --red:#c7373b;
+      --white:#fff;
+      --card: rgba(255,255,255,.10);
+      --stroke: rgba(255,255,255,.18);
+      --muted: rgba(255,255,255,.75);
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
+      --radius: 18px;
+      --green:#2e9b4f;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--white);
+      background:
+        radial-gradient(1200px 700px at 20% 15%, rgba(199,55,59,.22), transparent 55%),
+        radial-gradient(900px 600px at 80% 80%, rgba(255,255,255,.10), transparent 60%),
+        linear-gradient(135deg, var(--navy), var(--navy2));
+      overflow:hidden;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size:34px 34px;
+      opacity:.35;
+      pointer-events:none;
+    }
+
+    .screen{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns: 220px 1fr 280px;
+      padding:18px;
+      gap:14px;
+      position:relative;
+    }
+
+    .left{ position:relative; z-index:1; }
+
+    .logoBox{
+      width:150px;
+      height:150px;
+      opacity:.22;
+      pointer-events:none;
+      user-select:none;
+    }
+
+    .logoBox img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+    }
+
+    .tabs{
+      position:absolute;
+      left:0;
+      bottom:0;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      width:190px;
+    }
+
+    .tab{
+      text-decoration:none;
+      color: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:16px;
+      padding:12px 12px;
+      font-weight:950;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      box-shadow: 0 12px 22px rgba(0,0,0,.18);
+    }
+
+    .tab.active{
+      background: rgba(255,255,255,.14);
+      border-color: rgba(255,255,255,.30);
+      box-shadow: 0 18px 30px rgba(0,0,0,.26);
+      position:relative;
+    }
+
+    .tab.active::after{
+      content:"";
+      position:absolute;
+      left:14px;
+      right:14px;
+      bottom:7px;
+      height:4px;
+      border-radius:999px;
+      background: linear-gradient(90deg, rgba(199,55,59,.95), rgba(255,255,255,.35));
+    }
+
+    .center{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1;
+      min-width:0;
+    }
+
+    .panel{
+      width:min(760px, 100%);
+      background: linear-gradient(180deg, var(--card), rgba(255,255,255,.06));
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+
+    .title{
+      margin:0;
+      font-size:24px;
+      font-weight:950;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+
+    .muted{
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.45;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .label{
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    input[type="date"]{
+      border:none;
+      outline:none;
+      border-radius:14px;
+      padding:14px 14px;
+      background: rgba(255,255,255,.12);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.18);
+      font-size:16px;
+      font-weight:700;
+    }
+
+    .btnRow{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      border:none;
+      border-radius:16px;
+      padding:14px 16px;
+      font-weight:950;
+      font-size:14px;
+      letter-spacing:.7px;
+      text-transform:uppercase;
+      cursor:pointer;
+      color:#fff;
+      box-shadow: 0 14px 30px rgba(0,0,0,.26);
+    }
+
+    .btn.primary{
+      background: linear-gradient(180deg, var(--green), #1f7f3d);
+      border:1px solid rgba(255,255,255,.18);
+    }
+
+    .btn.secondary{
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.20);
+    }
+
+    .btn:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+
+    .result{
+      display:none;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:16px;
+      padding:16px;
+      background: rgba(0,0,0,.18);
+      gap:12px;
+      flex-direction:column;
+    }
+
+    .stats{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:13px;
+      font-weight:900;
+    }
+
+    .linkRow{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .linkBtn{
+      text-decoration:none;
+      color:#fff;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:14px;
+      padding:12px 14px;
+      font-weight:900;
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+
+    .status{
+      display:none;
+      border-radius:14px;
+      padding:12px 14px;
+      font-size:14px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.18);
+    }
+
+    .status.err{ background: rgba(199,55,59,.18); }
+    .status.ok{ background: rgba(46,155,79,.18); }
+
+    .right{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:flex-end;
+      justify-content:flex-start;
+      z-index:1;
+    }
+
+    .card{
+      width:100%;
+      background: var(--card);
+      border:1px solid var(--stroke);
+      border-radius:14px;
+      padding:12px 12px;
+      box-shadow: 0 10px 26px rgba(0,0,0,.22);
+    }
+
+    .clock{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+      gap:2px;
+    }
+
+    .clock .date{
+      font-weight:900;
+      font-size:13px;
+      letter-spacing:.3px;
+      text-transform: capitalize;
+    }
+
+    .clock .time{
+      font-weight:950;
+      font-size:18px;
+      margin-top:2px;
+    }
+
+    .clock .tz{
+      font-size:12px;
+      color: var(--muted);
+      margin-top:2px;
+    }
+
+    .footerText{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:12px;
+      text-align:center;
+      color: rgba(255,255,255,.70);
+      font-size:12px;
+      letter-spacing:.3px;
+      pointer-events:none;
+    }
+
+    @media (max-width: 980px){
+      body{ overflow:auto; }
+      .screen{
+        grid-template-columns:1fr;
+        padding-bottom:60px;
+      }
+      .tabs{
+        position:static;
+        width:100%;
+        margin-top:14px;
+      }
+      .right{ align-items:stretch; }
+      .grid{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="screen">
+    <aside class="left">
+      <div class="logoBox">
+        <img src="logo.png" alt="Logo Bomberos Pergamino">
+      </div>
+
+      <nav class="tabs" aria-label="Navegación">
+        <a class="tab" href="index.html">📌 FICHERO</a>
+        <a class="tab" href="central.html">👥 EN CENTRAL</a>
+        <a class="tab active" href="reporte.html">📄 REPORTE</a>
+      </nav>
+    </aside>
+
+    <main class="center">
+      <section class="panel">
+        <h1 class="title">Reporte de fichadas</h1>
+        <div class="muted">
+          Elegí una fecha inicial y una fecha final. El sistema genera un archivo con dos hojas:
+          <b>DETALLE</b> y <b>RESUMEN</b>.  
+          El filtro corre desde <b>00:00</b> del día inicial hasta <b>23:59</b> del día final.
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="desde">Fecha desde</label>
+            <input type="date" id="desde" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="hasta">Fecha hasta</label>
+            <input type="date" id="hasta" />
+          </div>
+        </div>
+
+        <div class="btnRow">
+          <button class="btn primary" id="btnGenerar">Generar reporte</button>
+          <button class="btn secondary" id="btnHoy">Últimos 7 días</button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="result" id="result">
+          <div class="stats">
+            <div class="pill" id="detalleCount">Detalle: 0</div>
+            <div class="pill" id="resumenCount">Resumen: 0</div>
+          </div>
+
+          <div class="linkRow">
+            <a class="linkBtn" id="sheetLink" href="#" target="_blank" rel="noopener noreferrer">📄 Abrir Google Sheet</a>
+            <a class="linkBtn" id="xlsxLink" href="#" target="_blank" rel="noopener noreferrer">⬇ Descargar Excel</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="right">
+      <div class="card clock" aria-live="polite">
+        <div class="date" id="dateStr">—</div>
+        <div class="time" id="timeStr">—</div>
+        <div class="tz">Argentina (AR)</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="footerText">Sociedad Bomberos Voluntarios Pergamino</div>
+
+<script>
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
+  const TZ = "America/Argentina/Buenos_Aires";
+
+  const fmtDate = new Intl.DateTimeFormat("es-AR", {
+    timeZone: TZ,
+    weekday:"long",
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit"
+  });
+
+  const fmtTime = new Intl.DateTimeFormat("es-AR", {
+    timeZone: TZ,
+    hour:"2-digit",
+    minute:"2-digit",
+    second:"2-digit",
+    hour12:false
+  });
+
+  function tick(){
+    const now = new Date();
+    const d = fmtDate.format(now);
+    const t = fmtTime.format(now);
+    document.getElementById("dateStr").textContent = d.charAt(0).toUpperCase() + d.slice(1);
+    document.getElementById("timeStr").textContent = t;
+  }
+
+  tick();
+  setInterval(tick, 1000);
+
+  const $desde = document.getElementById("desde");
+  const $hasta = document.getElementById("hasta");
+  const $btnGenerar = document.getElementById("btnGenerar");
+  const $btnHoy = document.getElementById("btnHoy");
+  const $status = document.getElementById("status");
+  const $result = document.getElementById("result");
+  const $detalleCount = document.getElementById("detalleCount");
+  const $resumenCount = document.getElementById("resumenCount");
+  const $sheetLink = document.getElementById("sheetLink");
+  const $xlsxLink = document.getElementById("xlsxLink");
+
+  function showStatus(msg, type="ok"){
+    $status.className = `status ${type}`;
+    $status.textContent = msg;
+    $status.style.display = "block";
+  }
+
+  function hideStatus(){
+    $status.style.display = "none";
+  }
+
+  function setBusy(b){
+    $btnGenerar.disabled = b;
+    $btnHoy.disabled = b;
+  }
+
+  function todayYmd(){
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function shiftDays(ymd, delta){
+    const [y,m,d] = ymd.split("-").map(Number);
+    const dt = new Date(y, m-1, d);
+    dt.setDate(dt.getDate() + delta);
+    const yy = dt.getFullYear();
+    const mm = String(dt.getMonth()+1).padStart(2, "0");
+    const dd = String(dt.getDate()).padStart(2, "0");
+    return `${yy}-${mm}-${dd}`;
+  }
+
+  function initDates(){
+    const hoy = todayYmd();
+    $hasta.value = hoy;
+    $desde.value = shiftDays(hoy, -6);
+  }
+
+  initDates();
+
+  $btnHoy.addEventListener("click", ()=>{
+    initDates();
+    hideStatus();
+  });
+
+  $btnGenerar.addEventListener("click", async ()=>{
+    const desde = ($desde.value || "").trim();
+    const hasta = ($hasta.value || "").trim();
+
+    if(!desde || !hasta){
+      showStatus("Tenés que completar ambas fechas.", "err");
+      return;
+    }
+
+    if(desde > hasta){
+      showStatus("La fecha desde no puede ser mayor que la fecha hasta.", "err");
+      return;
+    }
+
+    hideStatus();
+    $result.style.display = "none";
+    setBusy(true);
+
+    try{
+      const url = `${ENDPOINT}?action=reporte&desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}`;
+      const res = await fetch(url, { cache:"no-store" });
+      const json = await res.json();
+
+      if(!json.ok){
+        showStatus(json.error || "No se pudo generar el reporte.", "err");
+        return;
+      }
+
+      $detalleCount.textContent = `Detalle: ${json.detalle_count ?? 0}`;
+      $resumenCount.textContent = `Resumen: ${json.resumen_count ?? 0}`;
+
+      $sheetLink.href = json.sheet_url;
+      $xlsxLink.href = json.xlsx_url;
+
+      $result.style.display = "flex";
+      showStatus("Reporte generado correctamente.", "ok");
+    }catch(err){
+      showStatus(`Error de red: ${String(err)}`, "err");
+    }finally{
+      setBusy(false);
+    }
+  });
+</script>
+</body>
+</html>

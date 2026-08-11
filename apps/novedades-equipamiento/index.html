@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Novedades Equipamiento</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-block">
+      <img class="brand-logo" src="logo-sbvp.png" alt="Logo Bomberos Voluntarios Pergamino" />
+      <div>
+        <p class="eyebrow">Bomberos Voluntarios Pergamino</p>
+        <h1>Novedades Equipamiento</h1>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btnBoardPdf" class="btn secondary">PDF completo</button>
+      <button id="btnRefresh" class="btn secondary">Actualizar</button>
+      <button id="btnAdmin" class="btn ghost">Modo admin</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel config-panel" id="configPanel">
+      <h2>Configuracion inicial</h2>
+      <p>Pega la URL publicada de tu Apps Script para conectar la pizarra con la hoja <strong>PIZARRA</strong>.</p>
+      <label for="scriptUrl">URL Apps Script</label>
+      <input id="scriptUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+      <button id="saveConfig" class="btn primary">Guardar conexion</button>
+    </section>
+
+    <section id="publicView" class="public-view">
+      <div class="public-board" id="listPublic"></div>
+    </section>
+
+    <section id="adminView" class="admin-view hidden">
+      <section class="summary-grid">
+        <article class="summary-card"><span>Disponibles</span><strong id="countDisponible">0</strong></article>
+        <article class="summary-card"><span>Finalizadas</span><strong id="countFinalizada">0</strong></article>
+        <article class="summary-card"><span>Controladas visibles</span><strong id="countControlada">0</strong></article>
+      </section>
+
+      <section class="toolbar panel">
+        <div class="field">
+          <label for="filterText">Buscar</label>
+          <input id="filterText" type="search" placeholder="Movil, elemento, novedad o persona" />
+        </div>
+        <div class="field">
+          <label for="filterStatus">Estado</label>
+          <select id="filterStatus">
+            <option value="">Todos</option>
+            <option value="Disponible">Disponible</option>
+            <option value="Finalizada">Finalizada</option>
+            <option value="Controlada">Controlada</option>
+          </select>
+        </div>
+      </section>
+
+      <section id="adminPanel" class="panel admin-panel">
+        <div class="panel-title-row">
+          <h2>Panel administrador</h2>
+          <span class="pill">Clave 1105 activa</span>
+        </div>
+      </section>
+
+      <section class="board">
+        <div class="column" data-status="Disponible">
+          <h2>Disponibles</h2>
+          <div class="task-list" id="listDisponible"></div>
+        </div>
+        <div class="column" data-status="Finalizada">
+          <h2>Finalizadas</h2>
+          <div class="task-list" id="listFinalizada"></div>
+        </div>
+        <div class="column" data-status="Controlada">
+          <h2>Controladas</h2>
+          <div class="task-list" id="listControlada"></div>
+        </div>
+      </section>
+
+      <section class="panel history-summary" id="historySummary">
+        <div class="history-copy">
+          <a id="historyLink" class="btn secondary history-link" target="_blank" rel="noreferrer">Abrir base historica</a>
+          <p id="yearSummaryText" class="history-line">Vamos resolviendo 0 novedades reportadas en el ultimo año.</p>
+          <p id="topResolverText" class="history-line">Todavia no hay suficientes novedades finalizadas para destacar a alguien.</p>
+        </div>
+        <div class="history-table-wrap">
+          <table class="history-table">
+            <thead>
+              <tr><th>Movil</th><th>Novedades</th></tr>
+            </thead>
+            <tbody id="mobileSummaryBody">
+              <tr><td colspan="2">Sin datos para mostrar.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="taskModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow modal-eyebrow" id="modalMobile"></p>
+          <h2 id="modalTitle">Novedad</h2>
+        </div>
+        <button id="modalClose" class="icon-btn" type="button" aria-label="Cerrar">x</button>
+      </div>
+      <div class="modal-detail" id="modalDetail"></div>
+      <div class="field">
+        <label for="modalUser">Quien la realiza</label>
+        <input id="modalUser" type="text" list="responsablesList" placeholder="Nombre y apellido" />
+        <datalist id="responsablesList"></datalist>
+      </div>
+      <div class="field">
+        <label for="modalObs">Observacion final</label>
+        <textarea id="modalObs" placeholder="Opcional"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button id="modalCancel" class="btn secondary" type="button">Cancelar</button>
+        <button id="modalFinish" class="btn primary" type="button">Marcar finalizada</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

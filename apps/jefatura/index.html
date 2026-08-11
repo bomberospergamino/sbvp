@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sociedad de Bomberos Voluntarios Pergamino</title>
+    <link rel="stylesheet" href="style.css"> <!-- Enlace al archivo de estilos -->
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <img src="https://bnz07pap001files.storage.live.com/y4ml2OuMJRIb1fjpNEmXaWCeiM8RK67NWMDFvzvDTcZKfyHsHIgzMzyAknaL_fisuf3EtUfqCRIdfusyaIaBnsdd_UNr_rSlEv1zuSRWKY-X8PltTtpVgjPiTvh_KtU2c439JpeZry2tDepAdVPDdESbrfO46tklMC8FiFudGL3cUHWHyAnSXbt7nRuYCkV2KGiC2QGJvok1oIMEbkC4DNSbZnpnspe1PvfdlibPgq-4hA?encodeFailures=1&width=188&height=188" class="logo-left">
+            <div class="title-container">
+                <h1>SOCIEDAD DE BOMBEROS VOLUNTARIOS PERGAMINO</h1>
+                <p class="descripcion">Castelli 1231, (B2700CPM) Pergamino, Argentina |TEL: +54 02477 438000 | N° de emergencia: 100</p>
+            </div>
+            <img src="https://www.fedbonaerense.org.ar/wp-content/uploads/2024/02/logo-180-2.png" class="logo-right">
+        </div>
+    </header>
+
+    <!-- Barra de navegación con pestañas -->
+    <nav class="navbar">
+        <ul class="nav-tabs">
+            <li><a href="#" onclick="mostrarPestaña('jefatura')">Jefatura</a></li>
+            <li><a href="#" onclick="mostrarPestaña('guardia')">Guardia Mensual</a></li>
+            <li><a href="#" onclick="mostrarPestaña('servicios')">Servicios</a></li>
+            <li><a href="#" onclick="mostrarPestaña('mejora')">Mejora Continua</a></li>
+            <li><a href="#" onclick="mostrarPestaña('equipamiento')">Equipamiento</a></li>
+            <li><a href="#" onclick="mostrarPestaña('facilidades')">Facilidades</a></li>
+            <li><a href="#" onclick="mostrarPestaña('formacion')">Formación Profesional</a></li>
+        </ul>
+    </nav>
+
+    <div class="section-container">
+        <div id="jefatura" class="tab-content">
+            <h2>Jefatura</h2>
+            <p>Información sobre la jefatura del cuartel...</p>
+
+    </div>
+</div>
+        <div id="guardia" class="tab-content" style="display: none;">
+            <h2>Guardia Mensual</h2>
+            <p>Detalle de la guardia mensual...</p>
+        </div>
+        <div id="servicios" class="tab-content" style="display: none;">
+            <h2>Servicios</h2>
+            <div class="section-container">
+                <iframe id="tablero_servicios" 
+                    src="https://lookerstudio.google.com/embed/reporting/436e928c-bc78-4fa4-9280-dd6c1c934261/page/1M"
+                    style="width: 100%; height: 750px; border: none;"
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="mejora" class="tab-content" style="display: none;">
+        <h2>Mejora continua</h2>
+        <div class="tabla5x1">
+            <div class="day">
+                <h3>Seguridad y Salud</h3>
+                <button class="calendar-button">HOLA</button>    
+            </div>       
+            <div class="day">
+                <h3>Recursos humanos</h3>
+                <button class="calendar-button">HOLA</button>    
+            </div>
+            <div class="day">
+                <h3>Estandarización</h3>
+                <button class="calendar-button">HOLA</button>    
+            </div>
+            <div class="day">
+                <h3>Indicadores</h3>
+                <button class="calendar-button" onclick="mostrarTablero('tablero1')">Indicadores por bombero</button> 
+                <button class="calendar-button" onclick="mostrarTablero('tablero2')">Indicadores por servicios</button>
+                <button class="calendar-button" onclick="mostrarTablero('tablero3')">Indicadores por sección</button>
+                <button class="calendar-button" onclick="mostrarTablero('tablero4')">Indicadores de desvíos</button>                    
+            </div>
+            <div class="day">
+                <h3>Comunicación</h3>
+                <button class="calendar-button">Acontecimientos institucionales</button>
+                <button class="calendar-button">Acontecimientos locales</button> 
+                <button class="calendar-button">Cumpleaños CA</button>   
+                <button class="calendar-button">Cumpleaños comisión</button>
+                <button class="calendar-button">Cumpleaños Reservistas</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tablero-container" class="tab-content" style="display: none;">
+    <iframe id="tablero1" 
+        src="https://lookerstudio.google.com/embed/reporting/05ae6f40-fbc5-4e25-93e9-0b8be2366fd3"
+        style="width: 100%; height: 750px; border: none;" allowfullscreen>
+    </iframe>
+
+    <iframe id="tablero2" 
+        src="https://lookerstudio.google.com/embed/reporting/436e928c-bc78-4fa4-9280-dd6c1c934261"
+        style="width: 100%; height: 750px; border: none;" allowfullscreen>
+    </iframe>
+            
+                <iframe id="tablero3" 
+                    src="https://lookerstudio.google.com/embed/reporting/tablero-seccion"
+                    style="width: 100%; height: 750px; border: none;"
+                    allowfullscreen>
+                </iframe>
+            
+                <iframe id="tablero4" 
+                    src="https://lookerstudio.google.com/embed/reporting/tablero-desvios"
+                    style="width: 100%; height: 750px; border: none;"
+                    allowfullscreen>
+                </iframe>
+            </div>
+            
+            <script>
+                function mostrarTablero(tableroId) {
+                    // Oculta todos los tableros
+                    var tableros = document.querySelectorAll("#tablero-container iframe");
+                    for (var i = 0; i < tableros.length; i++) {
+                        tableros[i].style.display = "none";
+                    }
+            
+                    // Muestra el tablero seleccionado
+                    var tablero = document.getElementById(tableroId);
+                    tablero.style.display = "block";
+            
+                    // Muestra el contenedor de los tableros
+                    document.getElementById("tablero-container").style.display = "block";
+                }
+            </script>
+ 
+<div id="equipamiento" class="tab-content" style="display: none;">
+    <h2>Equipamiento</h2>
+    <p>Checks para completar</p>
+    <!-- Calendario -->
+    <div class="calendar-1">
+        <div class="day">
+            <h3>Lunes</h3>
+            <button class="calendar-button" onclick="window.open('https://form.jotform.com/232326047073652', '_blank')">
+                CONTROL DE ERA
+            </button>
+            
+            <button class="calendar-button">Móvil N°12</button>
+            <button class="calendar-button">Móvil N°6</button>
+            <button class="calendar-button">Móvil N°7</button>
+        </div>
+        <div class="day">
+            <h3>Martes</h3>
+            <button class="calendar-button" onclick="window.open('https://form.jotform.com/232326047073652', '_blank')">
+                CONTROL DE ERA
+            </button>
+            <button class="calendar-button">Móvil N°12</button>
+            <button class="calendar-button">Móvil N°8</button>
+        </div>
+        <div class="day">
+            <h3>Miércoles</h3>
+            <button class="calendar-button" onclick="window.open('https://form.jotform.com/232326047073652', '_blank')">
+                CONTROL DE ERA
+            </button>
+            <button class="calendar-button">Móvil N°12</button>
+            <button class="calendar-button">Móvil N°11</button>
+        </div>
+        <div class="day">
+            <h3>Jueves</h3>
+            <button class="calendar-button" onclick="window.open('https://form.jotform.com/232326047073652', '_blank')">
+                CONTROL DE ERA
+            </button>
+            <button class="calendar-button">Móvil N°12</button>
+            <button class="calendar-button">Móvil N°19</button>
+        </div>
+        <div class="day">
+            <h3>Viernes</h3>
+            <button class="calendar-button" onclick="window.open('https://form.jotform.com/232326047073652', '_blank')">
+                CONTROL DE ERA
+            </button>
+            <button class="calendar-button">Móvil N°12</button>
+            <button class="calendar-button">Móvil N°24</button>
+        </div>
+        <div class="day">
+            <h3>Sábado</h3>
+            <button class="calendar-button" onclick="window.open('https://form.jotform.com/232326047073652', '_blank')">
+                CONTROL DE ERA
+            </button>
+            <button class="calendar-button">Móvil N°12</button>
+            <button class="calendar-button">Móvil N°25</button>
+        </div>
+        <div class="day">
+            <h3>Domingo</h3>
+            <button class="calendar-button" onclick="window.open('https://form.jotform.com/232326047073652', '_blank')">
+                CONTROL DE ERA
+            </button>
+            <button class="calendar-button">Móvil N°12</button>
+            <button class="calendar-button">Móvil N°27</button>
+        </div>
+    </div>
+<p>Almacenamiento de checks</p>
+<!-- Calendario -->
+<div class="calendar-2">
+    <div class="day">
+        <h3>Lunes</h3>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1S55_ncwAnA02fMo9Ow9sqQ8qHgCt0_By?usp=drive_link', '_blank')">
+            CONTROL DE ERA
+        </button>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1cHed7YTPVFSv1qQ_F2RGETw60QUB3ejk?usp=drive_link', '_blank')">
+            MÓVIL 12
+        </button>
+        <button class="calendar-button">Móvil N°6</button>
+        <button class="calendar-button">Móvil N°7</button>
+    </div>
+    <div class="day">
+        <h3>Martes</h3>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1S55_ncwAnA02fMo9Ow9sqQ8qHgCt0_By?usp=drive_link', '_blank')">
+            CONTROL DE ERA
+        </button>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1cHed7YTPVFSv1qQ_F2RGETw60QUB3ejk?usp=drive_link', '_blank')">
+            MÓVIL 12
+        </button>
+        <button class="calendar-button">Móvil N°8</button>
+    </div>
+    <div class="day">
+        <h3>Miércoles</h3>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1S55_ncwAnA02fMo9Ow9sqQ8qHgCt0_By?usp=drive_link', '_blank')">
+            CONTROL DE ERA
+        </button>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1cHed7YTPVFSv1qQ_F2RGETw60QUB3ejk?usp=drive_link', '_blank')">
+            MÓVIL 12
+        </button>
+        <button class="calendar-button">Móvil N°11</button>
+    </div>
+    <div class="day">
+        <h3>Jueves</h3>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1S55_ncwAnA02fMo9Ow9sqQ8qHgCt0_By?usp=drive_link', '_blank')">
+            CONTROL DE ERA
+        </button>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1cHed7YTPVFSv1qQ_F2RGETw60QUB3ejk?usp=drive_link', '_blank')">
+            MÓVIL 12
+        </button>
+        <button class="calendar-button">Móvil N°19</button>
+    </div>
+    <div class="day">
+        <h3>Viernes</h3>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1S55_ncwAnA02fMo9Ow9sqQ8qHgCt0_By?usp=drive_link', '_blank')">
+            CONTROL DE ERA
+        </button>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1cHed7YTPVFSv1qQ_F2RGETw60QUB3ejk?usp=drive_link', '_blank')">
+            MÓVIL 12
+        </button>
+        <button class="calendar-button">Móvil N°24</button>
+    </div>
+    <div class="day">
+        <h3>Sábado</h3>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1S55_ncwAnA02fMo9Ow9sqQ8qHgCt0_By?usp=drive_link', '_blank')">
+            CONTROL DE ERA
+        </button>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1cHed7YTPVFSv1qQ_F2RGETw60QUB3ejk?usp=drive_link', '_blank')">
+            MÓVIL 12
+        </button>
+        <button class="calendar-button">Móvil N°25</button>
+    </div>
+    <div class="day">
+        <h3>Domingo</h3>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1S55_ncwAnA02fMo9Ow9sqQ8qHgCt0_By?usp=drive_link', '_blank')">
+            CONTROL DE ERA
+        </button>
+        <button class="calendar-button" onclick="window.open('https://drive.google.com/drive/folders/1cHed7YTPVFSv1qQ_F2RGETw60QUB3ejk?usp=drive_link', '_blank')">
+            MÓVIL 12
+        </button>
+        <button class="calendar-button">Móvil N°27</button>
+    </div>
+    
+</div>
+</div>
+</div>
+    <div id="formacion" class="tab-content" style="display: none;">
+            <h2>Formación Profesional</h2>
+            <p>Material de formación profesional...</p>
+        </div>
+        <div id="facilidades" class="tab-content" style="display: none;">
+            <h2>Facilidades</h2>
+            <p>Detalle de la guardia mensual...</p>
+        </div>
+    </div>
+
+    <script>
+        function mostrarPestaña(id) {
+            // Ocultar todas las pestañas
+            let pestañas = document.querySelectorAll(".tab-content");
+            pestañas.forEach(p => p.style.display = "none");
+
+            // Mostrar la pestaña seleccionada
+            document.getElementById(id).style.display = "block";
+        }
+    </script>
+
+</body>
+</html>

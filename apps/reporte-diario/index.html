@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Reporte de guardia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero-card">
+      <div class="hero-brand">
+        <img src="./logo-sbvp.png" alt="Logo Bomberos Voluntarios Pergamino" class="hero-logo" onerror="this.onerror=null;this.src='./logo%20SBVP.png';" />
+        <div>
+          <p class="eyebrow">Registro diario de cumplimiento</p>
+          <h1>Reporte de guardia</h1>
+          <p class="hero-subtitle">Diseñado para uso rápido desde celular y PDF institucional.</p>
+        </div>
+      </div>
+
+      <div class="hero-meta-row">
+        <div class="meta-inline">
+          <span class="meta-label">Fecha</span>
+          <span class="meta-value" id="todayLabel"></span>
+        </div>
+        <div class="meta-inline meta-inline-input">
+          <label class="meta-label" for="responsableInput">Responsable</label>
+          <div class="searchable-select" id="responsableSelect">
+            <div class="searchable-control">
+              <span class="search-icon">🔎</span>
+              <input id="responsableInput" type="text" placeholder="Buscar responsable" autocomplete="off" />
+              <button class="search-toggle" type="button" aria-label="Mostrar opciones">▾</button>
+            </div>
+            <div class="searchable-menu" id="responsableMenu"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="reportContent">
+      <section class="duo-grid compact-grid">
+        <section class="section-card half-card compact-card">
+          <div class="section-head section-head-compact">
+            <h2>Control de acondicionamiento de los móviles</h2>
+          </div>
+          <div class="table-wrap no-break full-width-wrap">
+            <table class="report-table report-table-compact" id="movilesTable">
+              <thead>
+                <tr><th>Móvil</th><th>Estado</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section-card half-card compact-card">
+          <div class="section-head section-head-compact">
+            <h2>Control de dependencias</h2>
+          </div>
+          <div class="table-wrap no-break full-width-wrap">
+            <table class="report-table report-table-compact" id="dependenciasTable">
+              <thead>
+                <tr><th>Dependencia</th><th>Estado</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="section-card compact-card">
+        <div class="section-head section-head-compact"><h2>Control documental</h2></div>
+        <div class="planillas-grid">
+          <div>
+            <div class="subsection-title">Control de planillas</div>
+            <div class="table-wrap no-break full-width-wrap">
+              <table class="report-table report-table-compact" id="planillasTable">
+                <thead><tr><th>Planilla</th><th>Estado</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <div class="subsection-title">Check de choferes</div>
+            <div class="table-wrap no-break full-width-wrap">
+              <table class="report-table report-table-compact" id="choferesTable">
+                <thead><tr><th>Control</th><th>Estado</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-card compact-card">
+        <div class="section-head section-head-compact guardia-head">
+          <div>
+            <h2>Reporte de guardia</h2>
+            <p class="section-note">Las filas sin datos no se incluirán en el PDF final.</p>
+          </div>
+          <p class="section-note section-note-right">La tabla de bomberos puede desplazarse hacia la derecha en celular.</p>
+        </div>
+        <div class="table-wrap no-break guardia-scroll">
+          <table class="report-table report-table-lg report-table-guardia" id="guardiaTable">
+            <colgroup>
+              <col style="width:5%"><col style="width:27%"><col style="width:12%"><col style="width:12%"><col style="width:22%"><col style="width:22%">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Bombero</th>
+                <th>Guardia</th>
+                <th>Limpieza</th>
+                <th>Actividad 1</th>
+                <th>Actividad 2</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="actions-bar">
+      <button id="reloadDataBtn" class="btn btn-secondary" type="button">Actualizar datos</button>
+      <button id="downloadPdfBtn" class="btn btn-primary" type="button">Descargar PDF</button>
+      <button id="saveDriveBtn" class="btn btn-primary btn-drive" type="button">Guardar en Drive</button>
+    </footer>
+
+    <div class="status-bar" id="statusBar">Listo.</div>
+  </div>
+
+  <template id="searchInputTemplate">
+    <div class="searchable-select searchable-select-table">
+      <div class="searchable-control">
+        <span class="search-icon">🔎</span>
+        <input class="table-search-input" type="text" placeholder="Buscar bombero" autocomplete="off" />
+        <button class="search-toggle" type="button" aria-label="Mostrar opciones">▾</button>
+      </div>
+      <div class="searchable-menu"></div>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

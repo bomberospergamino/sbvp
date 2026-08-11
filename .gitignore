@@ -1,0 +1,18 @@
+# Archivos generados y de trabajo local
+outputs/
+
+# Dependencias y resultados de compilacion
+node_modules/
+dist/
+build/
+
+# Configuracion local y secretos
+.env
+.env.*
+!.env.example
+
+# Archivos del sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

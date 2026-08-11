@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generador de partes de servicio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <img src="logo-sbvp.png" alt="SBVP">
+      <div>
+        <p>Sociedad de Bomberos Voluntarios Pergamino</p>
+        <h1>Generador de partes de servicio</h1>
+      </div>
+    </div>
+    <div class="header-stats">
+      <span>Ultimo parte generado</span>
+      <strong id="lastService">Sin partes</strong>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Secciones">
+    <button class="tab active" data-view="partes">Partes</button>
+    <button class="tab" data-view="pendientes">Para completar <span id="pendingBadge">0</span></button>
+    <button class="tab" data-view="imprimir">Para imprimir <span id="printBadge">0</span></button>
+    <button class="tab" data-view="historico">Historico</button>
+    <button class="tab" data-view="metricas">Metricas</button>
+  </nav>
+
+  <main>
+    <section id="partes" class="view active">
+      <form id="serviceForm" class="panel">
+        <div class="panel-title">
+          <div>
+            <h2>Nuevo parte</h2>
+          </div>
+          <button type="button" id="newBlank" class="ghost">Limpiar</button>
+        </div>
+
+        <div class="load-tabs">
+          <div id="loadTabs" class="load-tab-list"></div>
+          <button type="button" id="addLoadSlot" class="ghost">Agregar carga</button>
+        </div>
+
+        <div class="form-block">
+          <div class="grid four compact-fields">
+            <fieldset class="inline-fieldset">
+              <legend>Parte de servicio</legend>
+              <div class="service-number">
+                <input name="parteNumero" inputmode="numeric" placeholder="XXX" required>
+                <span>/</span>
+                <input name="parteAnio" inputmode="numeric" maxlength="2" value="26" required>
+              </div>
+            </fieldset>
+            <label>Codigo<select name="codigo" required></select></label>
+            <label>Tipo<input name="tipo" placeholder="Ej. Accidente, tecnico"></label>
+          </div>
+        </div>
+
+        <div class="form-block">
+          <h3>Denunciante</h3>
+          <div class="grid four">
+            <label>Denunciante<input name="denunciante" placeholder="N/A"></label>
+            <label>Telefono<input name="telefono" placeholder="N/A"></label>
+            <label>Ubicacion<input name="ubicacion" required></label>
+            <label>Distancia (km)<input name="distancia" type="number" min="0" step="0.1"></label>
+          </div>
+        </div>
+
+        <div class="form-block">
+          <h3>Fecha y hora de llamada</h3>
+          <div class="grid two compact-fields">
+            <label>Fecha llamada<input name="fechaLlamada" type="date"></label>
+            <label>Hora llamada<input name="horaLlamada" type="time"></label>
+          </div>
+        </div>
+
+        <div class="form-block">
+          <h3>Salida y regreso</h3>
+          <div class="grid four">
+            <label>Fecha salida<input name="fechaSalida" type="date" required></label>
+            <label>Hora salida<input name="horaSalida" type="time" required></label>
+            <label>Fecha regreso<input name="fechaRegreso" type="date"></label>
+            <label>Hora regreso<input name="horaRegreso" type="time"></label>
+          </div>
+        </div>
+
+        <div class="form-block">
+          <h3>Responsables</h3>
+          <div class="grid two compact-fields">
+            <label>Persona a cargo<select name="aCargo"></select></label>
+            <label>Operador/a<select name="operador"></select></label>
+          </div>
+        </div>
+
+        <div class="form-block">
+          <div class="section-head">
+            <h3>Moviles</h3>
+            <button type="button" id="addMobile" class="ghost">Agregar movil</button>
+          </div>
+          <div class="mobile-header">
+            <span>Movil</span>
+            <span>Chofer</span>
+          </div>
+          <div id="mobileRows" class="stack mobile-stack"></div>
+        </div>
+
+        <div class="form-block dotacion-block">
+          <div class="section-head">
+            <h3>Dotacion</h3>
+            <button type="button" id="clearCrew" class="ghost">Limpiar dotacion</button>
+          </div>
+          <div class="crew-legend">
+            <span class="legend-dot duty"></span>D / CH
+            <span class="legend-dot standby"></span>R
+            <span class="legend-dot paid"></span>G/P
+          </div>
+          <div id="crewPanel" class="crew-panel"></div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="primary">Guardar parte</button>
+          <button type="button" id="printDraft" class="secondary">Imprimir incompleto</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="pendientes" class="view">
+      <div class="panel">
+        <div class="panel-title">
+          <div>
+            <h2>Para completar</h2>
+            <p>Partes generados que todavia no fueron cerrados, descargados o impresos completos.</p>
+          </div>
+          <label class="search-with-icon"><span>⌕</span><input id="pendingSearch" class="search" placeholder="Buscar parte, persona, ubicacion..."></label>
+        </div>
+        <div id="pendingList" class="table-list"></div>
+        <div id="completionEditor" class="completion-editor"></div>
+      </div>
+    </section>
+
+    <section id="imprimir" class="view">
+      <div class="panel">
+        <div class="panel-title">
+          <div>
+            <h2>Para imprimir</h2>
+            <p>Partes completados que todavia tienen pendiente imprimir frente o dotacion.</p>
+          </div>
+          <label class="search-with-icon"><span>⌕</span><input id="printSearch" class="search" placeholder="Buscar parte, persona, ubicacion..."></label>
+        </div>
+        <div id="printList" class="table-list"></div>
+      </div>
+    </section>
+
+    <section id="historico" class="view">
+      <div class="panel">
+        <div class="panel-title">
+          <div>
+            <h2>Historico</h2>
+            <p>Ultimos 3 meses, con busqueda por parte de servicio.</p>
+          </div>
+          <input id="historySearch" class="search" placeholder="Buscar parte, ubicacion, tipo...">
+        </div>
+        <div id="historyList" class="table-list"></div>
+      </div>
+    </section>
+
+    <section id="metricas" class="view">
+      <div class="panel">
+        <div class="panel-title">
+          <div>
+            <h2>Metricas</h2>
+            <p id="periodText">Usted esta viendo el periodo completo.</p>
+          </div>
+          <div class="period-filter">
+            <label>Desde<input id="metricFrom" type="date"></label>
+            <label>Hasta<input id="metricTo" type="date"></label>
+            <button id="applyMetricFilter" class="secondary">Aplicar</button>
+          </div>
+        </div>
+        <div class="subtabs">
+          <button class="subtab active" data-metric-view="general">General</button>
+          <button class="subtab" data-metric-view="movil">Por movil</button>
+          <button class="subtab" data-metric-view="bombero">Por bombero</button>
+        </div>
+      </div>
+
+      <div id="metric-general" class="metric-pane active">
+        <div class="metric-grid">
+          <article class="metric-card"><span>Servicios</span><strong id="mTotal">0</strong></article>
+          <article class="metric-card"><span>Horas hombre</span><strong id="mHours">0</strong></article>
+          <article class="metric-card"><span>Promedio dotacion</span><strong id="mCrew">0</strong></article>
+          <article class="metric-card"><span>Moviles usados</span><strong id="mMobiles">0</strong></article>
+        </div>
+        <div class="panel">
+          <div class="section-head">
+            <h2>Servicios por fecha y tipo</h2>
+            <div id="typeColorControls" class="color-controls"></div>
+          </div>
+          <div id="serviceCurve" class="curve-chart"></div>
+        </div>
+        <div class="split">
+          <div class="panel"><h2>Tipos de servicio</h2><div id="typeMetrics" class="bars"></div></div>
+          <div class="panel"><h2>Torta por tipo</h2><div id="typePie" class="pie-panel"></div></div>
+        </div>
+        <div class="panel"><h2>Km por movil</h2><div id="kmByMobile" class="bars"></div></div>
+      </div>
+
+      <div id="metric-movil" class="metric-pane">
+        <div class="split metrics-profile-layout">
+          <div class="panel"><h2>Moviles</h2><div id="mobileCards" class="profile-grid"></div></div>
+          <div class="panel"><h2>Detalle del movil</h2><div id="mobileProfile"></div></div>
+        </div>
+      </div>
+
+      <div id="metric-bombero" class="metric-pane">
+        <div class="split metrics-profile-layout">
+          <div class="panel">
+            <div class="section-head">
+              <h2>Bomberos</h2>
+              <div class="metric-actions">
+                <button id="exportPeopleMetrics" class="secondary" type="button">Descargar Excel</button>
+                <label class="search-with-icon"><span>⌕</span><input id="personSearch" class="search" placeholder="Buscar bombero"></label>
+              </div>
+            </div>
+            <div id="personCards" class="profile-grid"></div>
+          </div>
+          <div class="panel"><h2>Perfil del bombero</h2><div id="personProfile"></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <template id="mobileTemplate">
+    <div class="row-card mobile-row">
+      <select class="mobile-name"></select>
+      <select class="mobile-driver"></select>
+      <button type="button" class="icon remove" title="Quitar">x</button>
+    </div>
+  </template>
+
+  <div id="printRoot" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
