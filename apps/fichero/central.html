@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>En central | Bomberos Pergamino</title>
+  <style>
+    :root{
+      --navy:#062f45;
+      --navy2:#0a3a53;
+      --red:#c7373b;
+      --white:#fff;
+      --card: rgba(255,255,255,.10);
+      --stroke: rgba(255,255,255,.18);
+      --muted: rgba(255,255,255,.75);
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--white);
+      background:
+        radial-gradient(1200px 700px at 20% 15%, rgba(199,55,59,.22), transparent 55%),
+        radial-gradient(900px 600px at 80% 80%, rgba(255,255,255,.10), transparent 60%),
+        linear-gradient(135deg, var(--navy), var(--navy2));
+      overflow:hidden;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size:34px 34px;
+      opacity:.35;
+      pointer-events:none;
+    }
+
+    .screen{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns: 220px 1fr 280px;
+      padding:18px;
+      gap:14px;
+      position:relative;
+    }
+
+    .left{ position:relative; z-index:1; }
+
+    .logoBox{
+      width:150px;
+      height:150px;
+      opacity:.22;
+      pointer-events:none;
+      user-select:none;
+    }
+
+    .logoBox img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+    }
+
+    .tabs{
+      position:absolute;
+      left:0;
+      bottom:0;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      width:190px;
+    }
+
+    .tab{
+      text-decoration:none;
+      color: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:16px;
+      padding:12px 12px;
+      font-weight:950;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      box-shadow: 0 12px 22px rgba(0,0,0,.18);
+    }
+
+    .tab.active{
+      background: rgba(255,255,255,.14);
+      border-color: rgba(255,255,255,.30);
+      box-shadow: 0 18px 30px rgba(0,0,0,.26);
+      position:relative;
+    }
+
+    .tab.active::after{
+      content:"";
+      position:absolute;
+      left:14px;
+      right:14px;
+      bottom:7px;
+      height:4px;
+      border-radius:999px;
+      background: linear-gradient(90deg, rgba(199,55,59,.95), rgba(255,255,255,.35));
+    }
+
+    .center{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1;
+      min-width:0;
+    }
+
+    .panel{
+      width:min(1280px, 100%);
+      height:calc(100vh - 36px);
+      background: linear-gradient(180deg, var(--card), rgba(255,255,255,.06));
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .titleWrap{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .title{
+      font-weight:950;
+      letter-spacing:1.4px;
+      text-transform:uppercase;
+      font-size:18px;
+      margin:0;
+    }
+
+    .muted{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+    }
+
+    .topBadges{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .badge{
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.18);
+      font-weight:900;
+      font-size:13px;
+      white-space:nowrap;
+    }
+
+    .cardsWrap{
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding-right:4px;
+    }
+
+    .cardsWrap::-webkit-scrollbar{ width:10px; }
+    .cardsWrap::-webkit-scrollbar-thumb{
+      background: rgba(255,255,255,.16);
+      border-radius:999px;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+      gap:12px;
+      align-items:start;
+    }
+
+    .personCard{
+      position:relative;
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.07));
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:16px;
+      padding:13px;
+      box-shadow: 0 12px 26px rgba(0,0,0,.20);
+      overflow:hidden;
+    }
+
+    .personCard::after{
+      content:"";
+      position:absolute;
+      right:-34px;
+      top:-34px;
+      width:90px;
+      height:90px;
+      border-radius:999px;
+      background: radial-gradient(circle at 35% 35%, rgba(199,55,59,.24), transparent 62%);
+      pointer-events:none;
+    }
+
+    .cardTop{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+
+    .nameBlock{
+      min-width:0;
+    }
+
+    .lastName{
+      font-size:16px;
+      font-weight:950;
+      line-height:1.05;
+      letter-spacing:.2px;
+      text-transform:uppercase;
+      word-break:break-word;
+    }
+
+    .firstName{
+      font-size:13px;
+      font-weight:700;
+      color:rgba(255,255,255,.92);
+      margin-top:2px;
+      word-break:break-word;
+    }
+
+    .arrival{
+      flex-shrink:0;
+      text-align:right;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:12px;
+      padding:7px 8px;
+      min-width:88px;
+    }
+
+    .arrivalLabel{
+      font-size:9px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.6px;
+    }
+
+    .arrivalDate{
+      font-size:11px;
+      font-weight:700;
+      margin-top:3px;
+      color:rgba(255,255,255,.92);
+    }
+
+    .arrivalTime{
+      font-size:16px;
+      font-weight:950;
+      margin-top:1px;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: 84px 1fr;
+      gap:7px;
+      padding:6px 0;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+
+    .row:last-child{
+      border-bottom:none;
+      padding-bottom:0;
+    }
+
+    .label{
+      color:var(--muted);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    .value{
+      font-size:13px;
+      font-weight:700;
+      color:rgba(255,255,255,.95);
+      word-break:break-word;
+    }
+
+    .emptyState{
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:18px;
+      padding:24px;
+      text-align:center;
+      color:var(--muted);
+      background: rgba(255,255,255,.04);
+    }
+
+    .right{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:flex-end;
+      justify-content:flex-start;
+      z-index:1;
+    }
+
+    .card{
+      width:100%;
+      background: var(--card);
+      border:1px solid var(--stroke);
+      border-radius:14px;
+      padding:12px 12px;
+      box-shadow: 0 10px 26px rgba(0,0,0,.22);
+    }
+
+    .clock{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+      gap:2px;
+    }
+
+    .clock .date{
+      font-weight:900;
+      font-size:13px;
+      letter-spacing:.3px;
+      text-transform: capitalize;
+    }
+
+    .clock .time{
+      font-weight:950;
+      font-size:18px;
+      margin-top:2px;
+    }
+
+    .clock .tz{
+      font-size:12px;
+      color: var(--muted);
+      margin-top:2px;
+    }
+
+    .footerText{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:12px;
+      text-align:center;
+      color: rgba(255,255,255,.70);
+      font-size:12px;
+      letter-spacing:.3px;
+      pointer-events:none;
+    }
+
+    @media (max-width: 980px){
+      body{ overflow:auto; }
+      .screen{
+        grid-template-columns:1fr;
+        padding-bottom:60px;
+      }
+      .tabs{
+        position:static;
+        width:100%;
+        margin-top:14px;
+      }
+      .right{ align-items:stretch; }
+      .panel{
+        height:auto;
+        min-height:70vh;
+      }
+      .cards{
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="screen">
+    <aside class="left">
+      <div class="logoBox">
+        <img src="logo.png" alt="Logo Bomberos Pergamino">
+      </div>
+
+      <nav class="tabs" aria-label="Navegación">
+        <a class="tab" href="index.html">📌 FICHERO</a>
+        <a class="tab active" href="central.html">👥 EN CENTRAL</a>
+        <a class="tab" href="reporte.html">📄 REPORTE</a>
+      </nav>
+    </aside>
+
+    <main class="center">
+      <section class="panel">
+        <div class="head">
+          <div class="titleWrap">
+            <h1 class="title">EN CENTRAL</h1>
+            <div class="muted">
+              Personal cuyo último movimiento es <b>INGRESO</b>. Ordenado por <b>hora de llegada</b>.
+            </div>
+          </div>
+
+          <div class="topBadges">
+            <div class="badge" id="count">Cargando…</div>
+            <div class="badge" id="updated">Actualizando…</div>
+          </div>
+        </div>
+
+        <div class="cardsWrap">
+          <div class="cards" id="cards">
+            <div class="emptyState">Cargando personal en central…</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="right">
+      <div class="card clock" aria-live="polite">
+        <div class="date" id="dateStr">—</div>
+        <div class="time" id="timeStr">—</div>
+        <div class="tz">Argentina (AR)</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="footerText">Sociedad Bomberos Voluntarios Pergamino</div>
+
+<script>
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
+  const TZ = "America/Argentina/Buenos_Aires";
+
+  const fmtDate = new Intl.DateTimeFormat("es-AR", {
+    timeZone: TZ,
+    weekday:"long",
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit",
+    hour12:false
+  });
+
+  const fmtTime = new Intl.DateTimeFormat("es-AR", {
+    timeZone: TZ,
+    hour:"2-digit",
+    minute:"2-digit",
+    second:"2-digit",
+    hour12:false
+  });
+
+  function tick(){
+    const now = new Date();
+    const d = fmtDate.format(now);
+    const t = fmtTime.format(now);
+    document.getElementById("dateStr").textContent = d.charAt(0).toUpperCase() + d.slice(1);
+    document.getElementById("timeStr").textContent = t;
+  }
+
+  tick();
+  setInterval(tick, 1000);
+
+  function esc(value){
+    return String(value ?? "").replace(/[&<>"']/g, m => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      "\"":"&quot;",
+      "'":"&#39;"
+    }[m]));
+  }
+
+  function safeValue(v){
+    const s = String(v ?? "").trim();
+    return s ? s : "----";
+  }
+
+  function formatArrival(value){
+    if(!value) return { date:"----", time:"----" };
+    const d = new Date(value);
+    if(isNaN(d.getTime())) return { date:"----", time:"----" };
+
+    return {
+      date: d.toLocaleDateString("es-AR", {
+        day:"2-digit",
+        month:"2-digit",
+        year:"2-digit"
+      }),
+      time: d.toLocaleTimeString("es-AR", {
+        hour:"2-digit",
+        minute:"2-digit",
+          hour12:false
+      })
+    };
+  }
+
+  function formatUpdateNow(){
+    const now = new Date();
+    return now.toLocaleTimeString("es-AR", {
+      hour:"2-digit",
+      minute:"2-digit",
+      second:"2-digit"
+    });
+  }
+
+  function renderCards(data){
+    const cards = document.getElementById("cards");
+
+    if(!Array.isArray(data) || data.length === 0){
+      cards.innerHTML = `
+        <div class="emptyState">
+          No hay personal fichado como <b>dentro</b> en este momento.
+        </div>
+      `;
+      return;
+    }
+
+    cards.innerHTML = data.map(p => {
+      const arrival = formatArrival(p.ultimo_timestamp);
+
+      return `
+        <article class="personCard">
+          <div class="cardTop">
+            <div class="nameBlock">
+              <div class="lastName">${esc(safeValue(p.apellido))}</div>
+              <div class="firstName">${esc(safeValue(p.nombre))}</div>
+            </div>
+
+            <div class="arrival">
+              <div class="arrivalLabel">Ingreso</div>
+              <div class="arrivalDate">${esc(arrival.date)}</div>
+              <div class="arrivalTime">${esc(arrival.time)}</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="label">Jerarquía</div>
+            <div class="value">${esc(safeValue(p.jerarquia))}</div>
+          </div>
+
+          <div class="row">
+            <div class="label">Sección</div>
+            <div class="value">${esc(safeValue(p.seccion))}</div>
+          </div>
+
+          <div class="row">
+            <div class="label">Chofer</div>
+            <div class="value">${esc(safeValue(p.chofer))}</div>
+          </div>
+
+          <div class="row">
+            <div class="label">Especialidad</div>
+            <div class="value">${esc(safeValue(p.especialidad))}</div>
+          </div>
+
+          <div class="row">
+            <div class="label">Legajo</div>
+            <div class="value">${esc(safeValue(p.legajo))}</div>
+          </div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  async function loadCentral(){
+    const count = document.getElementById("count");
+    const updated = document.getElementById("updated");
+    const cards = document.getElementById("cards");
+
+    try{
+      const res = await fetch(`${ENDPOINT}?action=dentro`, { cache:"no-store" });
+      const json = await res.json();
+
+      if(!json.ok){
+        count.textContent = "Error";
+        cards.innerHTML = `
+          <div class="emptyState">
+            Error: ${esc(json.error || "desconocido")}
+          </div>
+        `;
+        return;
+      }
+
+      count.textContent = `Dentro: ${json.count}`;
+      updated.textContent = `Actualizado: ${formatUpdateNow()}`;
+      renderCards(json.data || []);
+    }catch(err){
+      count.textContent = "Error";
+      cards.innerHTML = `
+        <div class="emptyState">
+          Error de red: ${esc(String(err))}
+        </div>
+      `;
+    }
+  }
+
+  loadCentral();
+  setInterval(loadCentral, 15000);
+</script>
+</body>
+</html>

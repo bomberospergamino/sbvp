@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fichero | Bomberos Pergamino</title>
+  <style>
+    :root{
+      --navy:#062f45; --navy2:#0a3a53;
+      --red:#c7373b; --green:#2e9b4f; --white:#fff;
+      --card: rgba(255,255,255,.10);
+      --stroke: rgba(255,255,255,.18);
+      --muted: rgba(255,255,255,.75);
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--white);
+      background:
+        radial-gradient(1200px 700px at 20% 15%, rgba(199,55,59,.22), transparent 55%),
+        radial-gradient(900px 600px at 80% 80%, rgba(255,255,255,.10), transparent 60%),
+        linear-gradient(135deg, var(--navy), var(--navy2));
+      overflow:hidden;
+    }
+    body::before{
+      content:""; position:fixed; inset:0;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size:34px 34px; opacity:.35; pointer-events:none;
+    }
+
+    /* 3 columnas */
+    .screen{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns: 220px 1fr 280px;
+      padding: 18px;
+      gap: 14px;
+      position:relative;
+    }
+
+    /* Izquierda: logo arriba + tabs abajo-izquierda vertical */
+    .left{ position:relative; z-index:1; }
+    .logoBox{
+      width: 150px; height: 150px;
+      opacity:.22;
+      filter: saturate(.95) contrast(.98);
+      user-select:none; pointer-events:none;
+    }
+    .logoBox img{width:100%;height:100%;object-fit:contain}
+
+    /* Tabs: abajo-izquierda, vertical */
+    .tabs{
+      position:absolute;
+      left: 0;
+      bottom: 0;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      width: 190px;
+    }
+    .tab{
+      text-decoration:none;
+      color: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius: 16px;
+      padding: 12px 12px;
+      font-weight: 950;
+      letter-spacing:.6px;
+      text-transform: uppercase;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      box-shadow: 0 12px 22px rgba(0,0,0,.18);
+      transition: transform .08s ease, filter .12s ease;
+    }
+    .tab:hover{ filter: brightness(1.07); }
+    .tab:active{ transform: translateY(2px); }
+    .tab.active{
+      background: rgba(255,255,255,.14);
+      border-color: rgba(255,255,255,.30);
+      box-shadow: 0 18px 30px rgba(0,0,0,.26);
+      position:relative;
+    }
+    .tab.active::after{
+      content:"";
+      position:absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 7px;
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(199,55,59,.95), rgba(255,255,255,.35));
+    }
+
+    /* Centro */
+    .center{ display:flex; align-items:center; justify-content:center; z-index:1; }
+    .panel{
+      width: min(640px, 100%);
+      background: linear-gradient(180deg, var(--card), rgba(255,255,255,.06));
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      position:relative;
+      overflow:hidden;
+    }
+    .panel::after{
+      content:"";
+      position:absolute;
+      inset:-50px -60px auto auto;
+      width: 240px; height: 240px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 35%, rgba(199,55,59,.33), transparent 60%);
+      opacity:.8;
+      pointer-events:none;
+    }
+    .title{
+      text-align:center;
+      margin: 8px 0 4px;
+      font-weight: 950;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      font-size: 18px;
+    }
+    .subtitle{
+      margin: 0 0 14px;
+      text-align:center;
+      color: var(--muted);
+      font-size: 13px;
+      line-height:1.35;
+    }
+    .legajoBox{
+      background: rgba(0,0,0,.16);
+      border: 1px solid rgba(255,255,255,.20);
+      border-radius: 18px;
+      padding: 14px;
+    }
+    .legajoLabel{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      color: var(--muted); font-size: 12px; letter-spacing:.3px; text-transform: uppercase; margin-bottom: 8px;
+    }
+    #legajo{
+      width:100%;
+      border:none; outline:none;
+      background: rgba(255,255,255,.12);
+      color: white;
+      padding: 18px 14px;
+      font-size: 34px;
+      font-weight: 950;
+      letter-spacing: 2px;
+      text-align:center;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.18);
+    }
+    .btnRow{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .btn{
+      border:none; border-radius:16px;
+      padding:16px 14px;
+      font-weight:950; font-size:17px; letter-spacing:1px;
+      text-transform:uppercase;
+      cursor:pointer;
+      box-shadow: 0 14px 30px rgba(0,0,0,.26);
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      transition: transform .08s ease, filter .12s ease;
+      user-select:none;
+    }
+    .btn:active{ transform: translateY(2px) scale(.99); }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none; }
+    .btn.out{ background: linear-gradient(180deg, var(--red), #a92f33); border: 1px solid rgba(255,255,255,.18); }
+    .btn.in{ background: linear-gradient(180deg, var(--green), #1f7f3d); border: 1px solid rgba(255,255,255,.18); }
+
+    .footerRow{ display:flex; justify-content:space-between; gap:12px; margin-top:14px; align-items:center; flex-wrap:wrap; }
+    .btn.secondary{
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.20);
+      box-shadow: 0 12px 22px rgba(0,0,0,.18);
+      padding: 12px 14px;
+      font-size: 12px;
+      border-radius: 14px;
+      text-transform: uppercase;
+      letter-spacing:.6px;
+      font-weight: 950;
+      display:flex; align-items:center; gap:10px;
+      cursor:pointer;
+      color: rgba(255,255,255,.92);
+    }
+    .hint{ color: var(--muted); font-size: 12px; line-height: 1.35; }
+
+    .toast{
+      margin-top: 12px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.22);
+      color: rgba(255,255,255,.92);
+      display:none;
+      box-shadow: 0 12px 24px rgba(0,0,0,.22);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .toast.ok{ background: rgba(46,155,79,.18); }
+    .toast.err{ background: rgba(199,55,59,.18); }
+
+    /* Derecha: reloj + calendario */
+    .right{
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      align-items:flex-end;
+      justify-content:flex-start;
+      z-index:1;
+    }
+    .card{
+      width: 100%;
+      background: var(--card);
+      border:1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 12px 12px;
+      box-shadow: 0 10px 26px rgba(0,0,0,.22);
+    }
+
+    /* ✅ reloj centrado en columna */
+    .clock{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+      gap: 2px;
+    }
+    .clock .date{ font-weight:900; font-size: 13px; letter-spacing:.3px; text-transform: capitalize; }
+    .clock .time{ font-weight:950; font-size: 18px; margin-top: 2px; }
+    .clock .tz{ font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .calHead{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      margin-bottom: 8px;
+    }
+    .calTitle{
+      font-weight:950;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      font-size: 13px;
+      margin:0;
+    }
+    .calToday{
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .calList{
+      margin:0;
+      padding-left: 16px;
+      color: rgba(255,255,255,.90);
+      font-size: 13px;
+      line-height:1.45;
+    }
+    .calEmpty{
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .footerText{
+      position: fixed;
+      left: 0; right: 0;
+      bottom: 12px;
+      text-align:center;
+      color: rgba(255,255,255,.70);
+      font-size: 12px;
+      letter-spacing:.3px;
+      pointer-events:none;
+    }
+
+    /* Responsive */
+    @media (max-width: 980px){
+      body{ overflow:auto; }
+      .screen{ grid-template-columns: 1fr; padding-bottom: 60px; }
+      .tabs{ position: static; width:100%; margin-top: 14px; }
+      .left{ display:flex; flex-direction:column; gap:12px; }
+      .right{ align-items:stretch; }
+      .right .card{ width:100%; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="screen">
+    <!-- IZQUIERDA -->
+    <aside class="left">
+      <div class="logoBox">
+        <img src="logo.png" alt="Logo Bomberos Pergamino">
+      </div>
+
+      <nav class="tabs" aria-label="Navegación">
+        <a class="tab active" href="index.html">📌 FICHERO</a>
+        <a class="tab" href="central.html">👥 EN CENTRAL</a>
+        <a class="tab" href="reporte.html">📄 REPORTE</a>
+      </nav>
+    </aside>
+
+    <!-- CENTRO -->
+    <main class="center">
+      <section class="panel">
+        <div class="title">REGISTRO</div>
+        <div class="subtitle">Ingresá tu <b>legajo</b> y seleccioná <b>Entrada</b> o <b>Salida</b>.</div>
+
+        <div class="legajoBox">
+          <div class="legajoLabel">
+            <span>Legajo</span>
+            <span>solo números</span>
+          </div>
+
+          <input id="legajo" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0000" />
+
+          <div class="btnRow">
+            <button class="btn out" id="btnSalida" onclick="fichar('SALIDA')">⟵ SALIDA</button>
+            <button class="btn in" id="btnEntrada" onclick="fichar('INGRESO')">ENTRADA ⟶</button>
+          </div>
+
+          <div class="toast" id="toast"></div>
+
+          <div class="footerRow">
+            <button class="btn secondary" onclick="window.location.href='estado.html'">🔎 CONSULTAR ESTADO</button>
+            <div class="hint">Tip: presioná <b>Enter</b> para <b>Entrada</b>.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- DERECHA -->
+    <aside class="right">
+      <div class="card clock" aria-live="polite">
+        <div class="date" id="dateStr">—</div>
+        <div class="time" id="timeStr">—</div>
+        <div class="tz">Argentina (AR)</div>
+      </div>
+
+      <div class="card" aria-live="polite">
+        <div class="calHead">
+          <div class="calTitle">CALENDARIO</div>
+          <div class="calToday" id="calToday">—</div>
+        </div>
+
+        <p class="calEmpty" id="calEmpty">Sin recordatorios para hoy.</p>
+        <ul class="calList" id="calList" style="display:none;"></ul>
+      </div>
+    </aside>
+  </div>
+
+  <div class="footerText">Sociedad Bomberos Voluntarios Pergamino</div>
+
+<script>
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
+  const TZ = "America/Argentina/Buenos_Aires";
+  const ENDPOINT_CAL = "https://script.google.com/macros/s/AKfycbxI1YYEKCwVon5SwCxRxrmUg5ZYJ3JGKqlP0G53Ubr4gRshs-IUYA7Z_XIO0HDUhn7xew/exec";
+
+  // Clock AR
+  const fmtDate = new Intl.DateTimeFormat("es-AR", { timeZone: TZ, weekday:"long", year:"numeric", month:"2-digit", day:"2-digit" });
+  const fmtTime = new Intl.DateTimeFormat("es-AR", { timeZone: TZ, hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false });
+  const fmtShort = new Intl.DateTimeFormat("es-AR", { timeZone: TZ, day:"2-digit", month:"2-digit" });
+
+  function tick(){
+    const now = new Date();
+    const d = fmtDate.format(now);
+    const t = fmtTime.format(now);
+    document.getElementById("dateStr").textContent = d.charAt(0).toUpperCase() + d.slice(1);
+    document.getElementById("timeStr").textContent = t;
+    document.getElementById("calToday").textContent = fmtShort.format(now);
+  }
+function ymdInTZ(){
+  // YYYY-MM-DD en timezone AR
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ, year:"numeric", month:"2-digit", day:"2-digit"
+  }).formatToParts(new Date());
+  const y = parts.find(p=>p.type==="year").value;
+  const m = parts.find(p=>p.type==="month").value;
+  const d = parts.find(p=>p.type==="day").value;
+  return `${y}-${m}-${d}`;
+}
+
+function iconForTipo(tipo){
+  const t = (tipo || "").trim().toLowerCase();
+  if (t === "cumpleaños" || t === "cumpleanos") return "🎂";
+  if (t.includes("reun")) return "📅";
+  if (t.includes("guardia")) return "🧑‍🚒";
+  return "📌";
+}
+
+async function loadCalendar(){
+  const ymd = ymdInTZ();
+
+  const $empty = document.getElementById("calEmpty");
+  const $list  = document.getElementById("calList");
+
+  try{
+    const url = `${ENDPOINT_CAL}?action=calendario&date=${encodeURIComponent(ymd)}`;
+    const res = await fetch(url, { cache:"no-store" });
+    const j = await res.json();
+
+    if(!j.ok) throw new Error(j.error || "Error calendario");
+
+    if(!j.items || j.items.length === 0){
+      $list.style.display = "none";
+      $empty.style.display = "block";
+      $empty.textContent = "Sin recordatorios para hoy.";
+      return;
+    }
+
+    $list.innerHTML = "";
+    for(const it of j.items){
+      const li = document.createElement("li");
+      li.textContent = `${iconForTipo(it.tipo)} ${it.mensaje}`;
+      $list.appendChild(li);
+    }
+
+    $empty.style.display = "none";
+    $list.style.display = "block";
+
+  }catch(err){
+    $list.style.display = "none";
+    $empty.style.display = "block";
+    $empty.textContent = "No se pudo cargar el calendario.";
+    // Si querés debug visual:
+    // console.error(err);
+  }
+}
+  tick();
+  setInterval(tick, 1000);
+
+  // UI helpers
+  const $legajo = document.getElementById("legajo");
+  const $toast  = document.getElementById("toast");
+  const $btnEntrada = document.getElementById("btnEntrada");
+  const $btnSalida  = document.getElementById("btnSalida");
+
+  function setBusy(b){ $btnEntrada.disabled=b; $btnSalida.disabled=b; }
+  function showToast(msg, type="ok"){
+    $toast.className = `toast ${type}`;
+    $toast.textContent = msg;
+    $toast.style.display = "block";
+    setTimeout(()=>{ $toast.style.display = "none"; }, 4200);
+  }
+  function cleanLegajo(){ $legajo.value=""; $legajo.focus(); }
+
+  $legajo.addEventListener("keydown", (e)=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      fichar("INGRESO");
+    }
+  });
+
+  async function getIPFast(timeoutMs = 350){
+    try{
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+      const r = await fetch("https://api.ipify.org?format=json", { signal: ctrl.signal, cache:"no-store" });
+      clearTimeout(t);
+      const j = await r.json();
+      return j.ip || "";
+    }catch(e){
+      return "";
+    }
+  }
+
+  // ✅ modo optimista (libera el panel rápido)
+  async function fichar(movimiento){
+    const legajo = ($legajo.value || "").trim();
+    if(!/^\d+$/.test(legajo)){
+      showToast("Legajo inválido. Usá solo números.", "err");
+      return;
+    }
+
+    setBusy(true);
+
+    const sendPromise = (async ()=>{
+      const ip = await getIPFast(350);
+      const ua = `${ip} | ${navigator.userAgent}`;
+
+      const form = new FormData();
+      form.append("legajo", legajo);
+      form.append("movimiento", movimiento);
+      form.append("ip_externa", ip);
+      form.append("user_agent", ua);
+
+      const res = await fetch(ENDPOINT, { method:"POST", body: form });
+      const text = await res.text();
+      return JSON.parse(text);
+    })();
+
+    // liberar YA
+    cleanLegajo();
+    setBusy(false);
+    showToast("Registro enviado…", "ok");
+
+    // confirmar/error
+    try{
+      const j = await sendPromise;
+      if(!j.ok){
+        showToast(`Error: ${j.error || "desconocido"}`, "err");
+      }else{
+        showToast("Registro confirmado", "ok");
+      }
+    }catch(err){
+      showToast(`Error de red: ${String(err)}`, "err");
+    }
+  }
+
+window.addEventListener("load", ()=>{
+  $legajo.focus();
+  loadCalendar();
+  setInterval(loadCalendar, 60000); // refresca cada 60s
+}); 
+</script>
+</body>
+</html>

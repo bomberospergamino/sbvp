@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Control de equipamiento</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <img src="logo-sbvp.png" alt="Sociedad Bomberos Voluntarios Pergamino" class="logo" />
+    <div>
+      <p class="eyebrow">Sociedad Bomberos Voluntarios Pergamino</p>
+      <h1>Control de equipamiento</h1>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section id="homeView" class="card">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow" id="todayLabel">Agenda diaria</p>
+          <h2>Actividades de hoy</h2>
+        </div>
+        <button id="refreshBtn" class="ghost-btn" type="button">Actualizar</button>
+      </div>
+      <div id="statusBox" class="status">Cargando agenda...</div>
+      <div id="todayActivities" class="button-grid"></div>
+      <button id="allActivitiesBtn" class="secondary-btn full" type="button">Ver todas las actividades</button>
+    </section>
+
+    <section id="allView" class="card hidden">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Listado completo</p>
+          <h2>Todas las actividades</h2>
+        </div>
+        <button class="ghost-btn backHome" type="button">Volver</button>
+      </div>
+      <div id="allActivities" class="button-grid"></div>
+    </section>
+
+    <section id="formView" class="hidden">
+      <div class="card sticky-head">
+        <button class="ghost-btn backHome" type="button">Volver</button>
+        <div>
+          <p class="eyebrow">Formulario de control</p>
+          <h2 id="activityTitle">Actividad</h2>
+        </div>
+      </div>
+
+      <form id="controlForm" class="form-stack">
+        <section class="card meta-card">
+          <label>Fecha
+            <input id="fechaControl" name="fechaControl" type="date" required />
+          </label>
+
+          <div class="responsables-field">
+            <label for="responsableSearch">Responsable/s que completa/n</label>
+            <div class="search-box">
+              <span aria-hidden="true">🔎</span>
+              <input id="responsableSearch" type="search" placeholder="Buscar y seleccionar responsable/s..." autocomplete="off" />
+            </div>
+            <div id="selectedResponsables" class="selected-tags"></div>
+            <div id="responsablesList" class="responsables-list"></div>
+            <p class="field-help">Podés seleccionar más de una persona.</p>
+          </div>
+        </section>
+
+        <div id="itemsContainer"></div>
+
+        <section class="card">
+          <label>Fotos del control
+            <input id="fotosControl" name="fotosControl" type="file" accept="image/*" capture="environment" multiple />
+          </label>
+          <p class="field-help">Podés sacar fotos o adjuntar imágenes. Se incluirán en el PDF.</p>
+          <div id="photosPreview" class="photos-preview"></div>
+        </section>
+
+        <section class="card">
+          <label>Observaciones generales
+            <textarea id="observaciones" name="observaciones" rows="5" placeholder="Registrar novedades, faltantes, roturas, reposiciones o aclaraciones..."></textarea>
+          </label>
+        </section>
+
+        <section class="actions">
+          <button id="submitBtn" class="primary-btn full" type="submit">Descargar + Enviar</button>
+        </section>
+      </form>
+    </section>
+  </main>
+
+  <template id="locationTemplate">
+    <section class="card location-card">
+      <h3></h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="element-col">Elemento</th>
+              <th>Un</th>
+              <th>Cant.</th>
+              <th>Cond.</th>
+              <th>Obs.</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </template>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

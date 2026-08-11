@@ -1,175 +1,39 @@
-# SBVP · Home PWA
+# SBVP HOME
 
-Home central para herramientas del cuartel, optimizado para celular y compatible con GitHub Pages.
+Portal unificado de herramientas operativas de la Sociedad de Bomberos Voluntarios de Pergamino.
 
-## Secciones incluidas
+Este repositorio es el punto de trabajo principal. La portada se publica desde la raíz y las aplicaciones anteriormente separadas viven bajo `apps/`, por lo que un único despliegue puede servir todo el sistema.
 
-- Partes de servicio
-- Controles Diarios
-- Reporte Diario
-- Registro de Desvíos
-- Fichero
-- Equipamiento
-  - Pizarra de novedades
-  - Checks realizados
-  - Depósito
-  - Ropería
-- Soporte Operativo
-  - Control de Choferes
-  - Pizarra de novedades
-- Formación profesional
-  - Presentación de certificado
-- Ayudantía
-  - Licencias ordinarias
-  - Salud
-  - Presentación de certificados médicos
-  - Vacunación
-  - Cobertura médica
-- Brigadas
-- Complementos
-  - Agenda de contactos
-  - Ubicación de hidrantes
-  - Mapas de jurisdicción
-  - Compartir APP
+## Aplicaciones incluidas
 
-## Link ya cargado
+| Ruta | Aplicación | Repositorio de origen |
+| --- | --- | --- |
+| `apps/brigadas/` | Brigadas | `brigadas` |
+| `apps/choferes/` | Control de choferes | `choferes` |
+| `apps/controles-realizados/` | Checks realizados | `ControlesRealizados` |
+| `apps/equipamiento/` | Controles diarios | `Equipamiento` |
+| `apps/fichero/` | Fichero | `FicheroSBVP` + copia local más reciente |
+| `apps/generador-partes/` | Generador de partes | `GeneradorPartes` |
+| `apps/jefatura/` | Jefatura (legado, sin acceso en portada) | `jefatura` |
+| `apps/novedades-equipamiento/` | Novedades de equipamiento | `NovedadesEquipamiento` |
+| `apps/reporte-diario/` | Reporte diario | copia local recuperada; el remoto tenía contenido incorrecto |
 
-Links ya cargados:
+Los enlaces internos de la portada apuntan a estas rutas. Los mapas de hidrantes y jurisdicción continúan siendo enlaces externos.
 
-Partes de servicio apunta a:
+## Desarrollo local
 
-```text
-https://bomberospergamino.github.io/GeneradorPartes/
+No se requiere compilación. Se debe servir la raíz mediante un servidor HTTP para que el service worker y las rutas relativas funcionen correctamente. Por ejemplo:
+
+```powershell
+python -m http.server 8000
 ```
 
-Controles Diarios apunta a:
+Luego abrir `http://localhost:8000/`.
 
-```text
-https://bomberospergamino.github.io/Equipamiento/
-```
+## Publicación
 
-Reporte Diario apunta a:
+Vercel debe usar la raíz del repositorio como directorio del proyecto y no necesita comando de compilación para esta aplicación estática. Los cambios se preparan primero en una rama y se integran a `main` después de revisar el preview.
 
-```text
-https://bomberospergamino.github.io/ReporteDiarioSBVP/
-```
+## Fuentes y migración
 
-Pizarra de novedades de Equipamiento apunta a:
-
-```text
-https://bomberospergamino.github.io/NovedadesEquipamiento/
-```
-
-Checks realizados de Equipamiento apunta a:
-
-```text
-https://bomberospergamino.github.io/ControlesRealizados/
-```
-
-Control de Choferes apunta a:
-
-```text
-https://bomberospergamino.github.io/choferes/
-```
-
-Brigadas apunta a:
-
-```text
-https://bomberospergamino.github.io/brigadas/
-```
-
-Ubicación de hidrantes apunta a:
-
-```text
-https://maphub.net/sbvp28/sbvp
-```
-
-Mapas de jurisdicción apunta a:
-
-```text
-https://maphub.net/sbvp28/jurisdiccion
-```
-
-El resto de los botones queda preparado con aviso de “acceso preparado” hasta que se vinculen los repos correspondientes.
-
-## Publicación en GitHub Pages
-
-1. Crear un repositorio, por ejemplo `Home`.
-2. Subir estos archivos a la raíz del repo.
-3. Ir a `Settings` → `Pages`.
-4. Seleccionar `main` y `/root`.
-5. Guardar.
-
-La URL será similar a:
-
-```text
-https://bomberospergamino.github.io/Home/
-```
-
-## Cambiar links
-
-En `index.html`, reemplazar los `href="#"` por la URL real de cada herramienta cuando esté creada.
-
-
-## Cambios v2
-
-- Se eliminó el panel superior de Compartir APP.
-- El primer bloque visible ahora es Controles y reportes.
-- El botón Compartir APP queda solo en Complementos.
-- Se agregó banner de instalación de la APP.
-- Se agregó `service-worker.js` para habilitar instalación como PWA.
-- Se mantiene el logo institucional del cuartel.
-
-
-## Instalación como APP
-
-La pantalla incluye dos accesos de instalación:
-
-- Banner superior automático cuando el navegador habilita la instalación PWA.
-- Botón fijo **Instalar APP** debajo de **Compartir APP**, para que la opción quede siempre visible.
-
-En Android/Chrome puede abrir el instalador directamente. En iPhone/Safari no se puede forzar por código: el botón muestra la indicación para usar **Compartir → Agregar a pantalla de inicio**.
-
-
-## Cambios v4
-
-- Título principal cambiado a “Bienvenidos”.
-- Se eliminó el subtítulo bajo el título.
-- “Áreas del cuartel” pasó a “Secciones del cuartel”.
-- Brigadas se separó como división operativa independiente.
-- Se confirmó el acceso “Pizarra de novedades” dentro de Equipamiento.
-- Se actualizó la caché del service worker para forzar actualización en celulares.
-
-## Cambios v5
-
-- La primera opción de Controles y reportes ahora es **Partes de servicio**.
-- Se restauró **Controles Diarios** como segunda opción, apuntando a Equipamiento.
-- Se cargaron los links reales para hidrantes y jurisdicción.
-- Se agregó la pizarra de novedades de Soporte Operativo.
-- Se actualizó la caché del service worker.
-
-## Cambios v6
-
-- Se agregó la sección **Ayudantía**.
-- Se agregaron los apartados de **Licencias ordinarias** y **Salud**.
-- Dentro de Salud se agregaron **Presentación de certificados médicos**, **Vacunación** y **Cobertura médica**.
-- En Formación profesional se agregó **Presentación de certificado**.
-- Se actualizó la caché del service worker.
-
-## Cambios v7
-
-- Se vinculó **Reporte Diario** con su URL real.
-- Se agregó **Checks realizados** dentro de Equipamiento.
-- Se actualizó la caché del service worker.
-
-## Cambios v8
-
-- Se convirtió **Brigadas** en un botón con link directo.
-- Se agregó el botón **Fichero** en la barra superior como acceso pendiente.
-- Se actualizó la caché del service worker.
-
-## Cambios v9
-
-- En Soporte Operativo, **Control de Choferes** quedó primero.
-- Se vinculó **Control de Choferes** con su URL real.
-- Se actualizó la caché del service worker.
+El criterio utilizado para seleccionar cada versión y los commits de origen se documenta en [`docs/MIGRACION_MONOREPO.md`](docs/MIGRACION_MONOREPO.md).

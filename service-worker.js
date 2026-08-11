@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v9';
+const CACHE_NAME = 'sbvp-home-v11-monorepo';
 const APP_SHELL = [
   './',
   './index.html',
