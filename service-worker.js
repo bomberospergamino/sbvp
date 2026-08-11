@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v11-monorepo';
+const CACHE_NAME = 'sbvp-home-v12-choferes';
 const APP_SHELL = [
   './',
   './index.html',
@@ -18,7 +18,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      keys.filter((key) => key.startsWith('sbvp-home-') && key !== CACHE_NAME).map((key) => caches.delete(key))
     ))
   );
   self.clients.claim();
