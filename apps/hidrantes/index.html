@@ -6,11 +6,11 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""><link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="topbar"><a class="back" href="../../" aria-label="Volver al inicio">‹</a><a href="../../" aria-label="Ir al inicio" title="Ir al inicio"><img src="../../logo-sbvp.png" alt="Escudo SBVP"></a><div><span>SBVP · Herramientas operativas</span><h1>Mapa de hidrantes</h1></div><div class="location-actions"><button id="locateBtn" class="header-button" type="button">⌖ Mi ubicación</button><button id="changeLocationBtn" class="header-button" type="button">◎ Cambiar ubicación</button></div></header>
+  <header class="topbar"><a class="back" href="../../" aria-label="Volver al inicio">‹</a><a href="../../" aria-label="Ir al inicio" title="Ir al inicio"><img src="../../logo-sbvp.png" alt="Escudo SBVP"></a><div><span>SBVP · Herramientas operativas</span><h1>Hidrantes</h1></div><div class="location-actions"><button id="locateBtn" class="header-button" type="button">⌖ Mi ubicación</button><button id="changeLocationBtn" class="header-button" type="button">◎ Cambiar ubicación</button><button id="addBtn" class="header-button header-primary" type="button">＋ Agregar hidrante</button><button id="fitBtn" class="header-button" type="button">Ver todos</button></div></header>
   <main>
-    <section class="map-panel" aria-label="Mapa de hidrantes"><div id="map"></div><div class="map-tools"><button id="addBtn" class="primary" type="button">＋ Agregar hidrante</button><button id="fitBtn" type="button">Ver todos</button></div><p id="mapHint" class="map-hint hidden">Tocá el lugar exacto del hidrante en el mapa.</p></section>
+    <section class="map-panel" aria-label="Mapa de hidrantes"><div id="map"></div><p id="mapHint" class="map-hint hidden">Tocá el lugar exacto del hidrante en el mapa.</p></section>
     <aside class="sidebar">
-      <div class="sidebar-head"><div><p class="eyebrow">Registro operativo</p><h2>Hidrantes <span id="count">0</span></h2></div><button id="refreshBtn" class="icon-button" type="button" aria-label="Actualizar datos">↻</button></div>
+      <div class="sidebar-head"><div><p class="eyebrow">Registro operativo</p><h2>Ubicación de hidrantes <span id="count">0</span></h2></div><button id="refreshBtn" class="icon-button" type="button" aria-label="Actualizar datos">↻</button></div>
       <div id="originSummary" class="origin-summary hidden"><span>◎</span><div><strong>Ubicación de referencia</strong><small id="originText">Seleccionada en el mapa</small></div><button id="clearOriginBtn" type="button" aria-label="Quitar ubicación">×</button></div>
       <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Buscar por nombre, dirección o estado"></label>
       <div id="emptyState" class="empty"><div class="drop">💧</div><h3>Todavía no hay hidrantes</h3><p>Agregá el primero marcando su ubicación exacta en el mapa.</p><button id="emptyAddBtn" class="primary" type="button">Agregar primer hidrante</button></div>
@@ -19,7 +19,7 @@
   </main>
   <dialog id="detailsDialog" class="details-dialog"><div id="detailsContent"></div></dialog>
   <dialog id="editorDialog"><form id="editorForm" method="dialog">
-    <div class="dialog-head"><div><p class="eyebrow">Ficha del punto</p><h2 id="dialogTitle">Nuevo hidrante</h2></div><button class="close" value="cancel" aria-label="Cerrar">×</button></div>
+    <div class="dialog-head"><div><p class="eyebrow">Ficha del punto</p><h2 id="dialogTitle">Nuevo hidrante</h2></div><button id="closeEditorBtn" class="close" type="button" aria-label="Cerrar">×</button></div>
     <input id="hydrantId" type="hidden"><input id="lat" type="hidden"><input id="lng" type="hidden">
     <label>Nombre o referencia<input id="name" required maxlength="120" placeholder="Ej. Hidrante Plaza Merced"></label>
     <div id="adminFields" class="form-row"><label>Estado<select id="status"><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option></select></label><label>Publicación<select id="publication"><option value="Publicado">Publicado</option><option value="Pendiente">Pendiente</option></select></label></div>
@@ -27,7 +27,7 @@
     <div class="form-row"><label>Apto para móviles<input id="vehicles" maxlength="80" placeholder="Ej. 6, 8, 19 / Todos"></label><label>Tipo de acople<input id="coupling" maxlength="100" placeholder="Ej. 63 WW"></label></div>
     <div class="form-row"><label>Responsable<input id="responsible" maxlength="100"></label><label>Contacto<input id="contact" maxlength="100" inputmode="tel"></label></div>
     <label>Observaciones<textarea id="notes" maxlength="1000" rows="4" placeholder="Acceso, activación y referencias operativas…"></textarea></label><p id="coordinates" class="coordinates"></p>
-    <div class="dialog-actions"><button id="deleteBtn" class="danger hidden" type="button">Eliminar</button><span></span><button value="cancel">Cancelar</button><button class="primary" value="default">Guardar hidrante</button></div>
+    <div class="dialog-actions"><button id="deleteBtn" class="danger hidden" type="button">Eliminar</button><span></span><button id="cancelEditorBtn" type="button">Cancelar</button><button class="primary" value="default">Guardar hidrante</button></div>
   </form></dialog>
   <div id="toast" role="status" aria-live="polite"></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script><script src="app.js"></script>
 </body></html>
