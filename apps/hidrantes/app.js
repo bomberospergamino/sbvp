@@ -1,6 +1,6 @@
 const API_URL='https://script.google.com/macros/s/AKfycbxKKdJ3tNnt33UaPymYtwzNRGOkcCuKnNgJnG7zsYufVLZDtyrzGtxo1415jbpd8mU7uQ/exec';
 const PERGAMINO=[-33.889,-60.573];
-let hydrants=[],markers=new Map(),adding=false,selectingOrigin=false,origin=null,originMarker=null,adminToken='';
+let hydrants=[],markers=new Map(),adding=false,selectingOrigin=false,origin=null,originMarker=null,adminToken='',selectedPhotos=[];
 const map=L.map('map',{zoomControl:false}).setView(PERGAMINO,11);
 L.control.zoom({position:'bottomright'}).addTo(map);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
@@ -12,6 +12,8 @@ $('changeLocationBtn').addEventListener('click',toggleOriginSelection);$('clearO
 $('refreshBtn').addEventListener('click',()=>loadHydrants(true));$('searchInput').addEventListener('input',renderList);
 $('deleteBtn').addEventListener('click',deleteCurrent);
 $('closeEditorBtn').addEventListener('click',()=>editor.close());$('cancelEditorBtn').addEventListener('click',()=>editor.close());
+$('galleryInput').addEventListener('change',event=>addSelectedPhotos(event.target.files,event.target));
+$('cameraInput').addEventListener('change',event=>addSelectedPhotos(event.target.files,event.target));
 
 map.on('click',({latlng})=>{
   if(selectingOrigin){setOrigin(latlng.lat,latlng.lng,'Ubicación elegida en el mapa');stopModes();return}
@@ -22,12 +24,12 @@ form.addEventListener('submit',async event=>{
   if(event.submitter?.value==='cancel')return;
   event.preventDefault();
   const id=$('hydrantId').value,isEditing=Boolean(id);
-  const data={id,name:$('name').value.trim(),status:$('status').value,publication:$('publication').value,lat:Number($('lat').value),lng:Number($('lng').value),schedule:$('schedule').value.trim(),height:$('height').value.trim(),suitableVehicles:$('vehicles').value.trim(),couplingType:$('coupling').value.trim(),responsible:$('responsible').value.trim(),contact:$('contact').value.trim(),notes:$('notes').value.trim()};
+  const data={id,name:$('name').value.trim(),status:$('status').value,publication:$('publication').value,lat:Number($('lat').value),lng:Number($('lng').value),schedule:$('schedule').value.trim(),height:$('height').value.trim(),suitableVehicles:$('vehicles').value.trim(),couplingType:$('coupling').value.trim(),responsible:$('responsible').value.trim(),contact:$('contact').value.trim(),notes:$('notes').value.trim(),photos:selectedPhotos.map(({name,mimeType,base64})=>({name,mimeType,base64}))};
   setFormBusy(true);
   try{
     const result=await apiPost(isEditing?{action:'update',token:adminToken,data}:{action:'add',data});
     if(!result.ok)throw new Error(result.error||'No se pudo guardar.');
-    editor.close();await loadHydrants();showToast(isEditing?'Hidrante actualizado.':'Hidrante enviado para revisión.');
+    editor.close();await loadHydrants();const baseMessage=isEditing?'Hidrante actualizado.':'Hidrante enviado para revisión.';showToast(result.photoErrors?.length?`${baseMessage} Algunas fotos no pudieron subirse.`:`${baseMessage}${result.photosUploaded?` ${result.photosUploaded} foto(s) guardada(s).`:''}`);
   }catch(error){showToast(error.message)}finally{setFormBusy(false)}
 });
 
@@ -59,7 +61,7 @@ async function showDetails(id){const item=hydrants.find(h=>String(h.id)===String
 }
 
 async function requestEdit(item){if(!adminToken){const pin=prompt('Ingresá la clave administrativa para editar o eliminar:');if(pin===null)return;try{const result=await apiPost({action:'adminLogin',pin});if(!result.ok)throw new Error(result.error||'Clave incorrecta.');adminToken=result.token}catch(error){showToast(error.message);return}}details.close();openEditor(item,item.lat,item.lng,true)}
-function openEditor(item,lat,lng,isAdmin){form.reset();$('hydrantId').value=item?.id||'';$('name').value=item?.name||'';$('status').value=item?.status||'Activo';$('publication').value=item?.publication||'Publicado';$('schedule').value=item?.schedule||'';$('height').value=item?.height||'';$('vehicles').value=item?.suitableVehicles||'';$('coupling').value=item?.couplingType||'';$('responsible').value=item?.responsible||'';$('contact').value=item?.contact||'';$('notes').value=item?.notes||'';$('lat').value=item?.lat??lat;$('lng').value=item?.lng??lng;$('dialogTitle').textContent=item?'Editar hidrante':'Nuevo hidrante';$('adminFields').classList.toggle('hidden',!isAdmin);$('deleteBtn').classList.toggle('hidden',!isAdmin||!item);$('coordinates').textContent=`Ubicación: ${Number($('lat').value).toFixed(6)}, ${Number($('lng').value).toFixed(6)}`;editor.showModal();setTimeout(()=>$('name').focus(),50)}
+function openEditor(item,lat,lng,isAdmin){form.reset();selectedPhotos=[];renderSelectedPhotos();$('hydrantId').value=item?.id||'';$('name').value=item?.name||'';$('status').value=item?.status||'Activo';$('publication').value=item?.publication||'Publicado';$('schedule').value=item?.schedule||'';$('height').value=item?.height||'';$('vehicles').value=item?.suitableVehicles||'';$('coupling').value=item?.couplingType||'';$('responsible').value=item?.responsible||'';$('contact').value=item?.contact||'';$('notes').value=item?.notes||'';$('lat').value=item?.lat??lat;$('lng').value=item?.lng??lng;$('dialogTitle').textContent=item?'Editar hidrante':'Nuevo hidrante';$('adminFields').classList.toggle('hidden',!isAdmin);$('deleteBtn').classList.toggle('hidden',!isAdmin||!item);$('coordinates').textContent=`Ubicación: ${Number($('lat').value).toFixed(6)}, ${Number($('lng').value).toFixed(6)}`;editor.showModal();setTimeout(()=>$('name').focus(),50)}
 async function deleteCurrent(){const id=$('hydrantId').value;if(!id||!confirm('¿Eliminar este hidrante del mapa? La fila y sus fotos se conservarán para auditoría.'))return;try{const result=await apiPost({action:'delete',token:adminToken,id});if(!result.ok)throw new Error(result.error);editor.close();await loadHydrants();showToast('Hidrante eliminado del mapa.')}catch(error){showToast(error.message)}}
 
 async function apiPost(payload){const response=await fetch(API_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});return response.json()}
@@ -69,6 +71,11 @@ function formatDistance(km){return km<1?`${Math.round(km*1000)} m`:`${km.toFixed
 function phoneOnly(value){return String(value).replace(/[^\d+]/g,'')}
 function scrollToMap(){if(innerWidth<=760)$('map').scrollIntoView({behavior:'smooth'})}
 function setFormBusy(busy){form.querySelectorAll('button,input,select,textarea').forEach(element=>element.disabled=busy)}
+async function addSelectedPhotos(files,input){const available=6-selectedPhotos.length;const images=Array.from(files||[]).filter(file=>file.type.startsWith('image/')).slice(0,available);input.value='';if(!images.length)return showToast(available?'Elegí un archivo de imagen.':'Ya seleccionaste el máximo de 6 fotos.');$('photoHelp').textContent='Preparando fotos…';$('photoHelp').closest('.photo-field').classList.add('busy');try{for(const file of images)selectedPhotos.push(await compressPhoto(file));renderSelectedPhotos()}catch(error){showToast('Una de las fotos no pudo prepararse.')}finally{$('photoHelp').closest('.photo-field').classList.remove('busy');updatePhotoHelp()}}
+async function compressPhoto(file){const source=typeof createImageBitmap==='function'?await createImageBitmap(file,{imageOrientation:'from-image'}):await loadPhotoElement(file);const scale=Math.min(1,1600/Math.max(source.width,source.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));canvas.getContext('2d').drawImage(source,0,0,canvas.width,canvas.height);source.close?.();if(source.dataset?.objectUrl)URL.revokeObjectURL(source.dataset.objectUrl);const dataUrl=canvas.toDataURL('image/jpeg',.82);return{name:(file.name||`foto-${Date.now()}`).replace(/\.[^.]+$/,'.jpg'),mimeType:'image/jpeg',base64:dataUrl.split(',')[1],preview:dataUrl}}
+function loadPhotoElement(file){return new Promise((resolve,reject)=>{const image=new Image(),url=URL.createObjectURL(file);image.dataset.objectUrl=url;image.onload=()=>resolve(image);image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('No se pudo leer la imagen.'))};image.src=url})}
+function renderSelectedPhotos(){$('selectedPhotos').innerHTML=selectedPhotos.map((photo,index)=>`<div class="selected-photo"><img src="${photo.preview}" alt="Foto seleccionada ${index+1}"><button type="button" data-remove-photo="${index}" aria-label="Quitar foto">×</button></div>`).join('');$('selectedPhotos').querySelectorAll('[data-remove-photo]').forEach(button=>button.addEventListener('click',()=>{selectedPhotos.splice(Number(button.dataset.removePhoto),1);renderSelectedPhotos();updatePhotoHelp()}));updatePhotoHelp()}
+function updatePhotoHelp(){$('photoHelp').textContent=selectedPhotos.length?`${selectedPhotos.length} de 6 fotos listas para subir.`:'Hasta 6 fotos por envío.'}
 function escapeHtml(value=''){const node=document.createElement('div');node.textContent=value;return node.innerHTML}
 function escapeAttr(value=''){return escapeHtml(value).replace(/"/g,'&quot;')}
 function showToast(message){const toast=$('toast');toast.textContent=message;toast.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>toast.classList.remove('show'),3600)}

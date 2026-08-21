@@ -192,7 +192,9 @@ function addHydrant_(data) {
     record['Actualizado por'] = record['Actualizado por'] || 'Alta pública';
     writeRecord_(ctx, row, record);
     const folder = ensureFolderForRow_(ctx, row);
-    return { ok: true, id: record.ID, status: 'Pendiente', folderUrl: folder.folderUrl };
+    const upload = savePhotos_(folder.folderId, data.photos, record.ID);
+    if (upload.files.length && !record['Foto principal']) setCell_(ctx, row, 'Foto principal', upload.files[0].url);
+    return { ok: true, id: record.ID, status: 'Pendiente', folderUrl: folder.folderUrl, photosUploaded: upload.files.length, photoErrors: upload.errors };
   } finally { lock.releaseLock(); }
 }
 
@@ -209,8 +211,11 @@ function updateHydrant_(data) {
     record['Fecha de actualización'] = new Date();
     record['Actualizado por'] = record['Actualizado por'] || 'Administrador';
     writeRecord_(ctx, row, record, true);
-    ensureFolderForRow_(ctx, row);
-    return { ok: true, id: data.ID || data.id };
+    const folder = ensureFolderForRow_(ctx, row);
+    const upload = savePhotos_(folder.folderId, data.photos, data.ID || data.id);
+    const current = rowObject_(ctx, row);
+    if (upload.files.length && !current['Foto principal']) setCell_(ctx, row, 'Foto principal', upload.files[0].url);
+    return { ok: true, id: data.ID || data.id, photosUploaded: upload.files.length, photoErrors: upload.errors };
   } finally { lock.releaseLock(); }
 }
 
@@ -240,6 +245,34 @@ function listPhotos_(id) {
     photos.push({ id: file.getId(), name: file.getName(), url: `https://drive.google.com/thumbnail?id=${file.getId()}&sz=w1200` });
   }
   return { ok: true, photos, folderUrl: folder.getUrl() };
+}
+
+function savePhotos_(folderId, photos, hydrantId) {
+  const incoming = Array.isArray(photos) ? photos.slice(0, 6) : [];
+  if (!incoming.length) return { files: [], errors: [] };
+  const folder = DriveApp.getFolderById(String(folderId));
+  const files = [], errors = [];
+  incoming.forEach((photo, index) => {
+    try {
+      const mimeType = String(photo.mimeType || 'image/jpeg').toLowerCase();
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) throw new Error('Formato no admitido.');
+      const base64 = String(photo.base64 || '').replace(/^data:image\/[^;]+;base64,/, '');
+      if (!base64 || base64.length > 4000000) throw new Error('La imagen supera el tamaño permitido.');
+      const bytes = Utilities.base64Decode(base64);
+      const extension = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+      const requestedName = safeName_(String(photo.name || `foto-${index + 1}`)).replace(/\.[^.]+$/, '');
+      const name = `${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmmss')}-${index + 1}-${requestedName}.${extension}`;
+      const file = folder.createFile(Utilities.newBlob(bytes, mimeType, name));
+      if (CONFIG.PUBLICAR_FOTOS) {
+        try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (err) { console.warn(err); }
+      }
+      files.push({ id: file.getId(), name: file.getName(), url: `https://drive.google.com/thumbnail?id=${file.getId()}&sz=w1200` });
+    } catch (err) {
+      console.error(`No se pudo guardar una foto del hidrante ${hydrantId}: ${err.message}`);
+      errors.push({ index, message: err.message });
+    }
+  });
+  return { files, errors };
 }
 
 function adminLogin_(pin) {
