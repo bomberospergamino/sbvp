@@ -50,8 +50,8 @@ function renderChecks(items) {
           <div><dt>Fecha</dt><dd>${item.done ? formatDateTime(item.lastControlDate || item.lastLoadDate) : 'Sin control en los últimos 7 días'}</dd></div>
           <div><dt>Realizado por</dt><dd>${escapeHtml(responsables || (item.done ? 'Sin responsable informado' : '—'))}</dd></div>
           ${item.observaciones ? `<div><dt>Observaciones</dt><dd>${escapeHtml(item.observaciones)}</dd></div>` : ''}
+          <div><dt>PDF</dt><dd>${item.done && item.pdf ? `<a href="${escapeAttr(item.pdf)}" target="_blank" rel="noopener noreferrer">Ver último control</a>` : '—'}</dd></div>
         </dl>
-        ${item.pdf ? `<a href="${escapeAttr(item.pdf)}" target="_blank" rel="noopener noreferrer">Abrir PDF del control</a>` : ''}
       </article>
     `;
   }).join('');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v17-correccion-mix';
+const CACHE_NAME = 'sbvp-home-v18-accesos-y-checks';
 const APP_SHELL = [
   './',
   './index.html',
