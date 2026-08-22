@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v22-link-sigma-y-ajustes';
+const CACHE_NAME = 'sbvp-home-v23-hidrantes-carga-rapida';
 const APP_SHELL = [
   './',
   './index.html',
