@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-calendario-navegable-19';
+const APP_VERSION = 'brigadas-guardado-confirmado-20';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -797,14 +797,12 @@ async function handleScheduleSubmit(event) {
   document.getElementById('scheduleDialog').close();
   showAppToast('Guardando reunion en Google Sheets...', 'loading', 0);
   try {
-    const result = await postToAppsScript(payload);
+    await postToAppsScript(payload);
     upsertLocalMeeting(payload);
     renderCalendar();
     renderAdmin();
-    showAppToast(result?.confirmed === false
-      ? '✓ Reunion enviada. Actualizando calendario desde Sheets...'
-      : '✓ Reunion agendada y guardada en Google Sheets.', 'success');
-    await refreshFromSheetsAfterSchedule(payload.id_encuentro);
+    showAppToast('✓ Guardado. El encuentro fue enviado a Google Sheets.', 'success', 4500);
+    void refreshFromSheetsAfterSchedule(payload);
   } catch (error) {
     console.warn(error);
     state.localMeetings = state.localMeetings.filter((row) => normalizeRow(row).id_encuentro !== payload.id_encuentro);
@@ -858,16 +856,9 @@ function clearSyncedLocalMeetings() {
   saveStoredMeetings();
 }
 
-async function refreshFromSheetsAfterSchedule(expectedMeetingId = '') {
+async function refreshFromSheetsAfterSchedule(payload) {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    await syncCalendarFromOnline();
-    if (expectedMeetingId && !meetingExistsInSheet(expectedMeetingId)) {
-      state.localMeetings = state.localMeetings.filter((row) => normalizeRow(row).id_encuentro !== expectedMeetingId);
-      saveStoredMeetings();
-      renderCalendar();
-      renderAdmin();
-    }
+    await waitForCalendarWrite(payload);
   } catch (error) {
     console.warn('No se pudo refrescar Sheets despues de agendar', error);
   }
@@ -926,20 +917,8 @@ function openCalendarSaveWindow(payload) {
 }
 
 async function sendCalendarAction(payload) {
-  const url = buildAppsScriptUrl(payload);
-  try {
-    const result = await loadJsonp(url);
-    if (!result || result.ok !== true) {
-      throw new Error(result?.error || 'No se pudo guardar en Google Sheets');
-    }
-    return { ...result, confirmed: true };
-  } catch (error) {
-    console.warn('No se pudo confirmar por JSONP directo. Intentando envio invisible y lectura de control.', error);
-    submitAppsScriptForm(payload);
-    const confirmed = await waitForCalendarWrite(payload);
-    if (confirmed) return { ok: true, confirmed: true, fallback: true };
-    return { ok: true, confirmed: false, fallback: true };
-  }
+  submitAppsScriptForm(payload);
+  return { ok: true, confirmed: false };
 }
 
 async function waitForCalendarWrite(payload) {
