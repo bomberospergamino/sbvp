@@ -16,7 +16,7 @@ const BRIGADAS_CONFIG = [
 const BRIGADAS_SPREADSHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
 const REPORTES_DRIVE_FOLDER_ID = '1yzN-2WNhyAch4_9FX0GIv4fCeaGkSKE8';
 const UNUSED_BRIGADAS_SHEETS = ['DETALLE_CHECK_EQUIPAMIENTO', 'HISTORIAL_ACCIONES', 'ADMIN_RESUMEN'];
-const BRIGADAS_WEBAPP_VERSION = 'brigadas-asistencia-drive-2026-08-22';
+const BRIGADAS_WEBAPP_VERSION = 'brigadas-calendario-online-2026-08-22';
 
 const BRIGADAS_SHEETS = {
   CONFIG_BRIGADAS: ['id_brigada', 'nombre_brigada', 'columna_personal', 'logo_file', 'color', 'activa', 'orden', 'frecuencia_minima_mensual', 'responsable', 'bibliografia_url', 'observaciones'],
@@ -191,12 +191,15 @@ function doGet(e) {
         module: 'brigadas',
         version: BRIGADAS_WEBAPP_VERSION,
         calendar_get_actions: true,
-        actions: ['health', 'read_all', 'preparar_estructura', 'validar_estructura', 'diagnostico', 'test_encuentro', 'programar_encuentro', 'editar_encuentro', 'eliminar_encuentro'],
+        actions: ['health', 'read_all', 'read_calendar', 'preparar_estructura', 'validar_estructura', 'diagnostico', 'test_encuentro', 'programar_encuentro', 'editar_encuentro', 'eliminar_encuentro'],
         timestamp: new Date().toISOString(),
       });
     }
     if (action === 'read_all') {
       return webResponse_(e, readAllSheets_());
+    }
+    if (action === 'read_calendar') {
+      return webResponse_(e, readCalendar_());
     }
     if (action === 'preparar_estructura') {
       const setup = setupBrigadasSeguro();
@@ -361,6 +364,10 @@ function testEncuentro_() {
 }
 
 function programarEncuentro_(params) {
+  return withCalendarLock_(() => programarEncuentroUnlocked_(params));
+}
+
+function programarEncuentroUnlocked_(params) {
   const ss = getBrigadasSpreadsheet_();
   ensureSheet_(ss, 'ENCUENTROS', BRIGADAS_SHEETS.ENCUENTROS);
   const sheet = ss.getSheetByName('ENCUENTROS');
@@ -411,10 +418,14 @@ function programarEncuentro_(params) {
 }
 
 function editarEncuentro_(params) {
+  return withCalendarLock_(() => editarEncuentroUnlocked_(params));
+}
+
+function editarEncuentroUnlocked_(params) {
   const ss = getBrigadasSpreadsheet_();
   const sheet = ss.getSheetByName('ENCUENTROS');
   const rowNumber = findRowById_(sheet, 'id_encuentro', params.id_encuentro);
-  if (!rowNumber) return programarEncuentro_(params);
+  if (!rowNumber) return programarEncuentroUnlocked_(params);
   const headers = getHeaderMap_(sheet);
   const brigade = BRIGADAS_CONFIG.find((row) => row[0] === params.id_brigada);
   const values = {
@@ -439,12 +450,26 @@ function editarEncuentro_(params) {
 }
 
 function eliminarEncuentro_(params) {
+  return withCalendarLock_(() => eliminarEncuentroUnlocked_(params));
+}
+
+function eliminarEncuentroUnlocked_(params) {
   const ss = getBrigadasSpreadsheet_();
   const sheet = ss.getSheetByName('ENCUENTROS');
   const rowNumber = findRowById_(sheet, 'id_encuentro', params.id_encuentro);
   if (!rowNumber) return { id_encuentro: params.id_encuentro, deleted: false, reason: 'No encontrado' };
   sheet.deleteRow(rowNumber);
   return { id_encuentro: params.id_encuentro, deleted: true };
+}
+
+function withCalendarLock_(callback) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    return callback();
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function findRowById_(sheet, idHeader, idValue) {
@@ -551,6 +576,21 @@ function readAllSheets_() {
     sheets[name] = sheet ? sheetToObjects_(sheet) : [];
   });
   return { ok: true, sheets, timestamp: new Date().toISOString() };
+}
+
+function readCalendar_() {
+  const ss = getBrigadasSpreadsheet_();
+  const configSheet = ss.getSheetByName('CONFIG_BRIGADAS');
+  const meetingsSheet = ss.getSheetByName('ENCUENTROS');
+  return {
+    ok: true,
+    version: BRIGADAS_WEBAPP_VERSION,
+    sheets: {
+      CONFIG_BRIGADAS: configSheet ? sheetToObjects_(configSheet) : [],
+      ENCUENTROS: meetingsSheet ? sheetToObjects_(meetingsSheet) : [],
+    },
+    timestamp: new Date().toISOString(),
+  };
 }
 
 function sheetToObjects_(sheet) {

@@ -1,6 +1,7 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-asistencia-drive-15';
+const APP_VERSION = 'brigadas-calendario-online-16';
+const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
 const GOOGLE_SHEET_NAMES = [
@@ -53,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
   renderAll();
   loadGoogleSheet();
+  startCalendarSync();
 });
 
 function bindEvents() {
@@ -90,6 +92,50 @@ function bindEvents() {
   ['adminDateFrom', 'adminDateTo', 'adminBrigadeFilter', 'adminStateFilter', 'onlyMissingFilter', 'onlyHighFilter'].forEach((id) => {
     document.getElementById(id).addEventListener('change', renderAdmin);
   });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) syncCalendarFromOnline();
+  });
+}
+
+let calendarSyncTimer = null;
+let calendarSyncInProgress = false;
+
+function startCalendarSync() {
+  clearInterval(calendarSyncTimer);
+  calendarSyncTimer = setInterval(() => {
+    if (!document.hidden) syncCalendarFromOnline();
+  }, CALENDAR_SYNC_INTERVAL_MS);
+}
+
+async function fetchSharedCalendar() {
+  let payload = await loadJsonp(`${APPS_SCRIPT_URL}?action=read_calendar&cacheBust=${Date.now()}`);
+  if (!payload?.sheets?.ENCUENTROS) {
+    payload = await loadJsonp(`${APPS_SCRIPT_URL}?action=read_all&cacheBust=${Date.now()}`);
+  }
+  if (!payload?.ok || !payload.sheets?.ENCUENTROS) {
+    throw new Error(payload?.error || 'No se pudo leer el calendario compartido');
+  }
+  return payload.sheets;
+}
+
+async function syncCalendarFromOnline(showFeedback = false) {
+  if (calendarSyncInProgress) return false;
+  calendarSyncInProgress = true;
+  try {
+    const sharedSheets = await fetchSharedCalendar();
+    state.sheets = { ...state.sheets, ...sharedSheets };
+    clearSyncedLocalMeetings();
+    renderCalendar();
+    renderAdmin();
+    if (showFeedback) showAppToast('Calendario actualizado para todos.', 'success');
+    return true;
+  } catch (error) {
+    console.warn('No se pudo actualizar el calendario compartido', error);
+    if (showFeedback) showAppToast('No se pudo actualizar el calendario online.', 'warning');
+    return false;
+  } finally {
+    calendarSyncInProgress = false;
+  }
 }
 
 async function handleWorkbookUpload(event) {
@@ -578,7 +624,17 @@ function renderCalendarInto({ gridId, titleId, counterId, missingId, selectedMon
       pill.className = `event-pill ${normalizeState(meeting.estado)}`;
       const brigade = getBrigadasActivas().find((item) => item.id_brigada === meeting.id_brigada);
       const hour = meeting.hora_inicio || '';
-      pill.innerHTML = `<img src="${logoPath(brigade || {})}" alt=""><span class="event-hour">${escapeHtml(hour)}</span>`;
+      const brigadeLabel = meeting.brigada || brigade?.nombre_brigada || meeting.id_brigada || 'Brigada';
+      const topic = meeting.tema || 'Encuentro mensual';
+      pill.title = `${brigadeLabel} · ${hour} · ${topic}`;
+      pill.innerHTML = `
+        <img src="${logoPath(brigade || {})}" alt="">
+        <span class="event-details">
+          <strong>${escapeHtml(brigadeLabel)}</strong>
+          <span>${escapeHtml(topic)}</span>
+        </span>
+        <span class="event-hour">${escapeHtml(hour)}</span>
+      `;
       cell.appendChild(pill);
     });
     grid.appendChild(cell);
@@ -683,13 +739,18 @@ function openScheduleDialog(eventId = '') {
   document.getElementById('scheduleDialog').showModal();
 }
 
+function createMeetingId() {
+  if (window.crypto?.randomUUID) return `enc_${window.crypto.randomUUID()}`;
+  return `enc_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 async function handleScheduleSubmit(event) {
   event.preventDefault();
   const submitButton = document.getElementById('scheduleSubmit');
   const brigade = getBrigadasActivas().find((item) => item.id_brigada === document.getElementById('scheduleBrigade').value);
   const payload = {
     action: state.editingEventId ? 'editar_encuentro' : 'programar_encuentro',
-    id_encuentro: state.editingEventId || `enc_${Date.now()}`,
+    id_encuentro: state.editingEventId || createMeetingId(),
     fecha: document.getElementById('scheduleDate').value,
     mes_periodo: monthKey(document.getElementById('scheduleDate').value),
     id_brigada: brigade.id_brigada,
@@ -773,7 +834,7 @@ function clearSyncedLocalMeetings() {
 async function refreshFromSheetsAfterSchedule(expectedMeetingId = '') {
   try {
     await new Promise((resolve) => setTimeout(resolve, 900));
-    await loadGoogleSheet();
+    await syncCalendarFromOnline();
     if (expectedMeetingId && !meetingExistsInSheet(expectedMeetingId)) {
       state.localMeetings = state.localMeetings.filter((row) => normalizeRow(row).id_encuentro !== expectedMeetingId);
       saveStoredMeetings();
@@ -860,12 +921,12 @@ async function waitForCalendarWrite(payload) {
   for (let attempt = 0; attempt < 6; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 1200));
     try {
-      const data = await loadJsonp(`${APPS_SCRIPT_URL}?action=read_all&cacheBust=${Date.now()}`);
-      const meetings = (data?.sheets?.ENCUENTROS || []).map(normalizeRow);
+      const sheets = await fetchSharedCalendar();
+      const meetings = (sheets.ENCUENTROS || []).map(normalizeRow);
       const exists = meetings.some((row) => row.id_encuentro === eventId);
       if (payload.action === 'eliminar_encuentro') return !exists;
       if (exists) {
-        state.sheets = data.sheets;
+        state.sheets = { ...state.sheets, ...sheets };
         clearSyncedLocalMeetings();
         renderCalendar();
         renderAdmin();
@@ -1166,20 +1227,36 @@ function detectRepeatedAbsences() {
 
 async function exportarCalendarioPNG() {
   const node = document.getElementById('calendarExport');
+  const button = document.getElementById('downloadCalendarButton');
   node.classList.add('export-mode');
+  setButtonLoading('downloadCalendarButton', true, 'Preparando PNG...');
   try {
+    await Promise.all(Array.from(node.querySelectorAll('img')).map((image) => image.complete
+      ? Promise.resolve()
+      : new Promise((resolve) => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      })));
     const canvas = await html2canvas(node, {
       backgroundColor: '#ffffff',
       scale: 2,
       width: node.scrollWidth,
+      height: node.scrollHeight,
       windowWidth: Math.max(node.scrollWidth, 1200),
+      windowHeight: node.scrollHeight,
+      useCORS: true,
     });
     const link = document.createElement('a');
     link.download = `brigadas-calendario-${monthKey(state.calendarDate)}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
+    showAppToast('Calendario completo descargado en PNG.', 'success');
+  } catch (error) {
+    console.error(error);
+    showAppToast('No se pudo generar el PNG del calendario.', 'warning');
   } finally {
     node.classList.remove('export-mode');
+    setButtonLoading(button.id, false);
   }
 }
 
