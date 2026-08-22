@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-metricas-asistencia-17';
+const APP_VERSION = 'brigadas-asistencia-tema-18';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -359,6 +359,7 @@ function renderBrigades() {
     `;
     card.addEventListener('click', () => {
       if (state.selectedBrigade !== brigade.id_brigada) {
+        document.getElementById('attendanceTopic').value = '';
         document.getElementById('attendanceNotes').value = '';
       }
       state.selectedBrigade = brigade.id_brigada;
@@ -1435,6 +1436,7 @@ async function generarPDFAsistencia(includeLoaded) {
     alert('No se pudo cargar jsPDF.');
     return;
   }
+  const trainingTopic = document.getElementById('attendanceTopic').value.trim();
   const generalNotes = document.getElementById('attendanceNotes').value.trim();
   const attendanceDetails = members.map((person, index) => ({
     legajo: person.legajo || '',
@@ -1468,8 +1470,13 @@ async function generarPDFAsistencia(includeLoaded) {
     doc.text(`Brigada ${brigade.nombre_brigada}`, 42, 20);
     doc.setFontSize(10);
     doc.text(new Date().toLocaleDateString('es-AR'), 170, 20);
+    const topicLines = doc.splitTextToSize(trainingTopic || 'Sin tema informado', 135);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tema de la capacitación:', 14, 34);
     doc.setFont('helvetica', 'normal');
-    doc.text('Integrantes de la Brigada', 14, 34);
+    doc.text(topicLines, 58, 34);
+    const membersTitleY = Math.max(43, 39 + (topicLines.length - 1) * 5);
+    doc.text('Integrantes de la Brigada', 14, membersTitleY);
     const body = members.map((person, index) => {
       const name = [person.apellido, person.nombre].filter(Boolean).join(', ') || person.bombero || 'Sin nombre';
       const selected = attendanceDetails[index].estado_asistencia;
@@ -1478,7 +1485,7 @@ async function generarPDFAsistencia(includeLoaded) {
     });
     if (doc.autoTable) {
       doc.autoTable({
-        startY: 40,
+        startY: membersTitleY + 5,
         head: [['Integrante', 'P', 'A', 'Just.', 'Obs.']],
         body,
         styles: { fontSize: 9, cellPadding: 2.3 },
@@ -1499,7 +1506,7 @@ async function generarPDFAsistencia(includeLoaded) {
       y = 20;
     }
     doc.setFont('helvetica', 'bold');
-    doc.text('Observaciones / temática de la capacitación:', 14, y);
+    doc.text('Observaciones:', 14, y);
     doc.setFont('helvetica', 'normal');
     const notesLines = generalNotes ? doc.splitTextToSize(generalNotes, 182) : [''];
     doc.text(notesLines, 14, y + 6);
@@ -1526,6 +1533,7 @@ async function generarPDFAsistencia(includeLoaded) {
       id_brigada: brigade.id_brigada,
       brigada: brigade.nombre_brigada,
       tipo_reporte: 'asistencia',
+      tema: trainingTopic,
       observaciones: generalNotes,
     });
     await registrarAsistencia({
@@ -1534,7 +1542,7 @@ async function generarPDFAsistencia(includeLoaded) {
       mes_periodo: monthKey(attendanceDate),
       id_brigada: brigade.id_brigada,
       brigada: brigade.nombre_brigada,
-      tipo_actividad: 'Capacitación',
+      tipo_actividad: trainingTopic || 'Capacitación',
       observaciones_generales: generalNotes,
       detalles: attendanceDetails,
     });

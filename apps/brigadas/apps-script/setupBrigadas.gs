@@ -16,7 +16,7 @@ const BRIGADAS_CONFIG = [
 const BRIGADAS_SPREADSHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
 const REPORTES_DRIVE_FOLDER_ID = '1yzN-2WNhyAch4_9FX0GIv4fCeaGkSKE8';
 const UNUSED_BRIGADAS_SHEETS = ['DETALLE_CHECK_EQUIPAMIENTO', 'HISTORIAL_ACCIONES', 'ADMIN_RESUMEN'];
-const BRIGADAS_WEBAPP_VERSION = 'brigadas-metricas-asistencia-2026-08-22';
+const BRIGADAS_WEBAPP_VERSION = 'brigadas-asistencia-tema-2026-08-22';
 
 const BRIGADAS_SHEETS = {
   CONFIG_BRIGADAS: ['id_brigada', 'nombre_brigada', 'columna_personal', 'logo_file', 'color', 'activa', 'orden', 'frecuencia_minima_mensual', 'responsable', 'bibliografia_url', 'observaciones'],

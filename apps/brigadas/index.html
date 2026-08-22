@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SBVP | Brigadas</title>
-    <link rel="stylesheet" href="styles.css?v=brigadas-metricas-17">
+    <link rel="stylesheet" href="styles.css?v=brigadas-asistencia-tema-18">
     <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script defer src="app.js?v=brigadas-metricas-17"></script>
+    <script defer src="app.js?v=brigadas-asistencia-tema-18"></script>
   </head>
   <body>
     <header class="topbar">
@@ -80,8 +80,8 @@
               </div>
             </div>
             <div id="attendancePanel" class="brigade-panel">
-              <label class="attendance-notes">Observaciones / temática de la capacitación
-                <textarea id="attendanceNotes" rows="3" placeholder="Ej: Práctica de búsqueda, capacitación sobre materiales peligrosos..."></textarea>
+              <label class="attendance-field">Tema de la capacitación
+                <input id="attendanceTopic" type="text" placeholder="Ej: Búsqueda y rescate, materiales peligrosos...">
               </label>
               <div class="table-wrap">
                 <table>
@@ -99,6 +99,9 @@
                   <tbody id="membersTable"></tbody>
                 </table>
               </div>
+              <label class="attendance-field attendance-notes">Observaciones
+                <textarea id="attendanceNotes" rows="3" placeholder="Escribí aquí cualquier observación general de la jornada..."></textarea>
+              </label>
               <div class="detail-actions">
                 <button id="saveAttendanceButton" class="success-button"><span>+</span> Descargar y guardar</button>
               </div>
