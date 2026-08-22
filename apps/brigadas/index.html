@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SBVP | Brigadas</title>
-    <link rel="stylesheet" href="styles.css?v=brigadas-mobile-3">
+    <link rel="stylesheet" href="styles.css?v=brigadas-asistencia-15">
     <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script defer src="app.js?v=brigadas-calendario-14"></script>
+    <script defer src="app.js?v=brigadas-asistencia-15"></script>
   </head>
   <body>
     <header class="topbar">
@@ -80,6 +80,9 @@
               </div>
             </div>
             <div id="attendancePanel" class="brigade-panel">
+              <label class="attendance-notes">Observaciones / temática de la capacitación
+                <textarea id="attendanceNotes" rows="3" placeholder="Ej: Práctica de búsqueda, capacitación sobre materiales peligrosos..."></textarea>
+              </label>
               <div class="table-wrap">
                 <table>
                   <thead>

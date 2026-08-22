@@ -27,7 +27,7 @@ body {
     linear-gradient(180deg,#eef4f7 0%,var(--paper) 34%);
 }
 
-button, input, select {
+button, input, select, textarea {
   font: inherit;
 }
 
@@ -381,6 +381,25 @@ p { color: var(--muted); margin-top: 4px; }
 
 .brigade-panel.active {
   display: block;
+}
+
+.attendance-notes {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.attendance-notes textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 76px;
+  border: 1px solid #bdb5a6;
+  border-radius: 6px;
+  padding: 10px;
+  color: var(--ink);
+  background: #fff;
 }
 
 .simple-list {

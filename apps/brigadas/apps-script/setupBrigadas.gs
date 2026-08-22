@@ -16,7 +16,7 @@ const BRIGADAS_CONFIG = [
 const BRIGADAS_SPREADSHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
 const REPORTES_DRIVE_FOLDER_ID = '1yzN-2WNhyAch4_9FX0GIv4fCeaGkSKE8';
 const UNUSED_BRIGADAS_SHEETS = ['DETALLE_CHECK_EQUIPAMIENTO', 'HISTORIAL_ACCIONES', 'ADMIN_RESUMEN'];
-const BRIGADAS_WEBAPP_VERSION = 'brigadas-fila-real-2026-07-12';
+const BRIGADAS_WEBAPP_VERSION = 'brigadas-asistencia-drive-2026-08-22';
 
 const BRIGADAS_SHEETS = {
   CONFIG_BRIGADAS: ['id_brigada', 'nombre_brigada', 'columna_personal', 'logo_file', 'color', 'activa', 'orden', 'frecuencia_minima_mensual', 'responsable', 'bibliografia_url', 'observaciones'],
@@ -463,8 +463,18 @@ function findRowById_(sheet, idHeader, idValue) {
 
 function guardarReporte_(params) {
   const root = DriveApp.getFolderById(REPORTES_DRIVE_FOLDER_ID);
-  const brigadeFolder = getBrigadeFolder_(root, params.brigada || params.id_brigada || 'Brigada');
   const reportType = params.tipo_reporte || 'reportes';
+  const brigadeFolder = getBrigadeFolder_(
+    root,
+    params.id_brigada || params.brigada || 'Brigada',
+    reportType !== 'asistencia'
+  );
+  if (reportType === 'asistencia') {
+    const bytes = Utilities.base64Decode(params.base64 || '');
+    const blob = Utilities.newBlob(bytes, params.mime_type || 'application/pdf', params.filename || `asistencia-${Date.now()}.pdf`);
+    const file = brigadeFolder.createFile(blob);
+    return { file_id: file.getId(), url: file.getUrl(), name: file.getName(), folder_id: brigadeFolder.getId() };
+  }
   const typeFolderName = reportType === 'asistencia' ? '01 Asistencias' : reportType === 'equipamiento' ? '02 Equipamiento' : 'Reportes';
   const typeFolder = getOrCreateFolder_(brigadeFolder, typeFolderName);
   const monthFolder = getOrCreateFolder_(typeFolder, Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM'));
@@ -487,7 +497,7 @@ function guardarCertificado_(params) {
   return { file_id: file.getId(), url: file.getUrl(), name: file.getName() };
 }
 
-function getBrigadeFolder_(root, brigadeName) {
+function getBrigadeFolder_(root, brigadeName, createIfMissing) {
   const normalized = normalizeHeader_(brigadeName).replace(/_/g, ' ');
   const knownNames = {
     'brec': 'BRIGADA BREC',
@@ -500,7 +510,17 @@ function getBrigadeFolder_(root, brigadeName) {
     'socorrismo': 'BRIGADA SOCORRISMO',
   };
   const folderName = knownNames[normalized] || ('BRIGADA ' + String(brigadeName).toUpperCase());
-  return getOrCreateFolder_(root, folderName);
+  const folders = root.getFolders();
+  while (folders.hasNext()) {
+    const folder = folders.next();
+    if (normalizeHeader_(folder.getName()).replace(/_/g, ' ') === normalizeHeader_(folderName).replace(/_/g, ' ')) {
+      return folder;
+    }
+  }
+  if (createIfMissing === false) {
+    throw new Error(`No existe la carpeta ${folderName} dentro de la carpeta de brigadas.`);
+  }
+  return root.createFolder(folderName);
 }
 
 function getOrCreateFolder_(parent, name) {
