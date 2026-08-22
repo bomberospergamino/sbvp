@@ -29,7 +29,7 @@ form.addEventListener('submit',async event=>{
   try{
     const result=await apiPost(isEditing?{action:'update',token:adminToken,data}:{action:'add',data});
     if(!result.ok)throw new Error(result.error||'No se pudo guardar.');
-    editor.close();await loadHydrants();const baseMessage=isEditing?'Hidrante actualizado.':'Hidrante enviado para revisión.';showToast(result.photoErrors?.length?`${baseMessage} Algunas fotos no pudieron subirse.`:`${baseMessage}${result.photosUploaded?` ${result.photosUploaded} foto(s) guardada(s).`:''}`);
+    editor.close();await loadHydrants();const baseMessage=isEditing?'Hidrante actualizado.':'Hidrante guardado como PENDIENTE. Para verlo en el mapa, cambiá Publicación a Publicado en la planilla.';showToast(result.photoErrors?.length?`${baseMessage} Algunas fotos no pudieron subirse.`:`${baseMessage}${result.photosUploaded?` ${result.photosUploaded} foto(s) guardada(s).`:''}`,isEditing?3600:8500);
   }catch(error){showToast(error.message)}finally{setFormBusy(false)}
 });
 
@@ -83,6 +83,6 @@ function renderSelectedPhotos(){$('selectedPhotos').innerHTML=selectedPhotos.map
 function updatePhotoHelp(){$('photoHelp').textContent=selectedPhotos.length?`${selectedPhotos.length} de 6 fotos listas para subir.`:'Hasta 6 fotos por envío.'}
 function escapeHtml(value=''){const node=document.createElement('div');node.textContent=value;return node.innerHTML}
 function escapeAttr(value=''){return escapeHtml(value).replace(/"/g,'&quot;')}
-function showToast(message){const toast=$('toast');toast.textContent=message;toast.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>toast.classList.remove('show'),3600)}
+function showToast(message,duration=3600){const toast=$('toast');toast.textContent=message;toast.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>toast.classList.remove('show'),duration)}
 
 loadHydrants();

@@ -481,6 +481,23 @@ body{
   padding:18px clamp(12px,3vw,28px) 34px;
 }
 
+@media(min-width:1100px){
+  .app-shell{
+    width:calc(100% - 40px);
+    max-width:1600px;
+    padding-left:28px;
+    padding-right:28px;
+  }
+
+  .button-grid{
+    grid-template-columns:repeat(4,minmax(180px,1fr));
+  }
+
+  .meta-card{
+    grid-template-columns:minmax(300px, .7fr) minmax(520px, 2fr);
+  }
+}
+
 .card{
   border-color:var(--line);
   border-radius:8px;

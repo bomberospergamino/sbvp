@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v21-link-vercel-correcto';
+const CACHE_NAME = 'sbvp-home-v22-link-sigma-y-ajustes';
 const APP_SHELL = [
   './',
   './index.html',
