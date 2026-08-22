@@ -16,7 +16,7 @@ const BRIGADAS_CONFIG = [
 const BRIGADAS_SPREADSHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
 const REPORTES_DRIVE_FOLDER_ID = '1yzN-2WNhyAch4_9FX0GIv4fCeaGkSKE8';
 const UNUSED_BRIGADAS_SHEETS = ['DETALLE_CHECK_EQUIPAMIENTO', 'HISTORIAL_ACCIONES', 'ADMIN_RESUMEN'];
-const BRIGADAS_WEBAPP_VERSION = 'brigadas-calendario-online-2026-08-22';
+const BRIGADAS_WEBAPP_VERSION = 'brigadas-metricas-asistencia-2026-08-22';
 
 const BRIGADAS_SHEETS = {
   CONFIG_BRIGADAS: ['id_brigada', 'nombre_brigada', 'columna_personal', 'logo_file', 'color', 'activa', 'orden', 'frecuencia_minima_mensual', 'responsable', 'bibliografia_url', 'observaciones'],
@@ -191,7 +191,7 @@ function doGet(e) {
         module: 'brigadas',
         version: BRIGADAS_WEBAPP_VERSION,
         calendar_get_actions: true,
-        actions: ['health', 'read_all', 'read_calendar', 'preparar_estructura', 'validar_estructura', 'diagnostico', 'test_encuentro', 'programar_encuentro', 'editar_encuentro', 'eliminar_encuentro'],
+        actions: ['health', 'read_all', 'read_calendar', 'preparar_estructura', 'validar_estructura', 'diagnostico', 'test_encuentro', 'programar_encuentro', 'editar_encuentro', 'eliminar_encuentro', 'registrar_asistencia'],
         timestamp: new Date().toISOString(),
       });
     }
@@ -259,6 +259,10 @@ function doPost(e) {
     }
     if (params.action === 'guardar_reporte') {
       const result = guardarReporte_(params);
+      return jsonResponse_({ ok: true, result });
+    }
+    if (params.action === 'registrar_asistencia') {
+      const result = registrarAsistencia_(params);
       return jsonResponse_({ ok: true, result });
     }
     if (params.action === 'guardar_certificado') {
@@ -484,6 +488,63 @@ function findRowById_(sheet, idHeader, idValue) {
     if (String(values[i][0]) === String(idValue)) return i + 2;
   }
   return 0;
+}
+
+function registrarAsistencia_(params) {
+  return withCalendarLock_(() => {
+    const ss = getBrigadasSpreadsheet_();
+    ensureSheet_(ss, 'ASISTENCIAS', BRIGADAS_SHEETS.ASISTENCIAS);
+    ensureSheet_(ss, 'DETALLE_ASISTENCIAS', BRIGADAS_SHEETS.DETALLE_ASISTENCIAS);
+    const attendanceSheet = ss.getSheetByName('ASISTENCIAS');
+    const detailSheet = ss.getSheetByName('DETALLE_ASISTENCIAS');
+    const attendanceId = String(params.id_asistencia || '').trim();
+    if (!attendanceId) throw new Error('Falta id_asistencia');
+    if (findRowById_(attendanceSheet, 'id_asistencia', attendanceId)) {
+      return { id_asistencia: attendanceId, saved: false, reason: 'Ya registrado' };
+    }
+    let details = params.detalles || [];
+    if (typeof details === 'string') details = JSON.parse(details || '[]');
+    if (!Array.isArray(details) || !details.length) throw new Error('Falta el detalle de asistencias');
+    const date = params.fecha || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    appendObjectRow_(attendanceSheet, {
+      id_asistencia: attendanceId,
+      id_encuentro: params.id_encuentro || '',
+      fecha: date,
+      mes_periodo: params.mes_periodo || date.slice(0, 7),
+      id_brigada: params.id_brigada || '',
+      brigada: params.brigada || '',
+      tipo_actividad: params.tipo_actividad || 'Capacitación',
+      responsable: params.responsable || '',
+      observaciones_generales: params.observaciones_generales || '',
+      creado_por: Session.getActiveUser().getEmail() || 'web',
+      timestamp: new Date(),
+      pdf_url: params.pdf_url || '',
+      estado_registro: 'Cerrado',
+    });
+    details.forEach((detail) => appendObjectRow_(detailSheet, {
+      id_asistencia: attendanceId,
+      legajo: detail.legajo || '',
+      apellido: detail.apellido || '',
+      nombre: detail.nombre || '',
+      bombero: detail.bombero || '',
+      jerarquia: detail.jerarquia || '',
+      estado_asistencia: detail.estado_asistencia || '',
+      observacion_individual: detail.observacion_individual || '',
+    }));
+    formatSheet_(attendanceSheet);
+    formatSheet_(detailSheet);
+    SpreadsheetApp.flush();
+    return { id_asistencia: attendanceId, saved: true, details: details.length };
+  });
+}
+
+function appendObjectRow_(sheet, values) {
+  const headers = getHeaderMap_(sheet);
+  const rowNumber = Math.max(getLastContentRow_(sheet) + 1, 2);
+  Object.keys(values).forEach((header) => {
+    if (headers[header]) sheet.getRange(rowNumber, headers[header]).setValue(values[header]);
+  });
+  return rowNumber;
 }
 
 function guardarReporte_(params) {

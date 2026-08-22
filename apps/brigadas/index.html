@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SBVP | Brigadas</title>
-    <link rel="stylesheet" href="styles.css?v=brigadas-calendario-online-16">
+    <link rel="stylesheet" href="styles.css?v=brigadas-metricas-17">
     <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script defer src="app.js?v=brigadas-calendario-online-16"></script>
+    <script defer src="app.js?v=brigadas-metricas-17"></script>
   </head>
   <body>
     <header class="topbar">
@@ -137,7 +137,11 @@
               <h2>Calendario de actividades</h2>
               <p id="homeCalendarCounter">Encuentros mensuales cubiertos: 0 / 7</p>
             </div>
-            <button data-view-jump="calendarioView">Ver calendario completo</button>
+            <div class="button-row">
+              <button id="homePrevMonthButton" aria-label="Mes anterior">← Mes anterior</button>
+              <button id="homeNextMonthButton" aria-label="Mes siguiente">Mes siguiente →</button>
+              <button data-view-jump="calendarioView">Ver calendario completo</button>
+            </div>
           </div>
           <div id="homeCalendarExport" class="calendar-export mini-calendar">
             <div class="calendar-title">
@@ -156,9 +160,9 @@
               <p><span id="calendarCounter">Encuentros mensuales cubiertos: 0 / 7</span> · actualización online automática</p>
             </div>
             <div class="button-row">
-              <button id="prevMonthButton" class="icon-button" aria-label="Mes anterior">‹</button>
+              <button id="prevMonthButton" aria-label="Mes anterior">← Mes anterior</button>
               <button id="todayButton">Mes actual</button>
-              <button id="nextMonthButton" class="icon-button" aria-label="Mes siguiente">›</button>
+              <button id="nextMonthButton" aria-label="Mes siguiente">Mes siguiente →</button>
               <button id="scheduleMeetingButton" class="success-button"><span>+</span> Programar encuentro</button>
             </div>
           </div>
@@ -180,6 +184,7 @@
           </div>
           <div class="calendar-actions-bottom">
             <button id="downloadCalendarButton" class="primary">Descargar PNG</button>
+            <button id="shareCalendarButton" class="success-button" aria-label="Compartir imagen del calendario">↗ Compartir imagen</button>
             <button id="printCalendarButton">Imprimir</button>
           </div>
         </section>
@@ -188,7 +193,7 @@
           <div class="section-head">
             <div>
               <h1>Admin Brigadas</h1>
-              <p>Resumen mensual de cumplimiento, asistencia, necesidades y equipamiento.</p>
+              <p>Métricas mensuales o anuales por brigada y por integrante.</p>
             </div>
             <div class="button-row">
               <button id="exportCsvButton">Exportar CSV</button>
@@ -196,8 +201,11 @@
             </div>
           </div>
           <div class="filters">
-            <label>Desde <input id="adminDateFrom" type="date"></label>
-            <label>Hasta <input id="adminDateTo" type="date"></label>
+            <label>Período
+              <select id="adminPeriodType"><option value="month">Mensual</option><option value="year">Anual</option></select>
+            </label>
+            <label>Año <select id="adminYear"></select></label>
+            <label id="adminMonthLabel">Mes <select id="adminMonth"></select></label>
             <label>Brigada <select id="adminBrigadeFilter"></select></label>
             <label>Estado <select id="adminStateFilter"></select></label>
             <label><input id="onlyMissingFilter" type="checkbox"> Solo faltantes</label>
@@ -206,15 +214,15 @@
           <div id="adminKpis" class="kpi-grid"></div>
           <div class="work-panel">
             <div class="panel-head">
-              <h2>Cumplimiento mensual</h2>
+              <h2 id="adminSummaryTitle">Métricas mensuales por brigada</h2>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
                     <th>Brigada</th>
-                    <th>Encuentro mensual</th>
-                    <th>Encuentros validos</th>
+                    <th>Meses cubiertos</th>
+                    <th>Encuentros realizados</th>
                     <th>Total asistencias</th>
                     <th>Presentes</th>
                     <th>Ausentes</th>
@@ -226,6 +234,26 @@
                   </tr>
                 </thead>
                 <tbody id="adminTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="work-panel">
+            <div class="panel-head">
+              <h2>Asistencia por persona y brigada</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Brigada</th>
+                    <th>Integrante</th>
+                    <th>Presentes</th>
+                    <th>Ausentes</th>
+                    <th>Justificados</th>
+                    <th>% asistencia</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceByPersonTable"></tbody>
               </table>
             </div>
           </div>
@@ -291,6 +319,15 @@
         </label>
         <label>Responsable
           <input id="scheduleResponsible" type="text" placeholder="Encargado / instructor">
+        </label>
+        <label>Estado
+          <select id="scheduleStatus">
+            <option>Programado</option>
+            <option>Realizado</option>
+            <option>Suspendido</option>
+            <option>Reprogramado</option>
+            <option>Pendiente</option>
+          </select>
         </label>
         <p id="scheduleMessage" class="notice hidden"></p>
         <div class="button-row right">
