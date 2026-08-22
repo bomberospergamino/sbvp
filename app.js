@@ -115,7 +115,7 @@ async function installApp(){
 }
 
 async function shareApp(){
-  const publicAppUrl = 'https://bomberospergamino.github.io/sbvp/';
+  const publicAppUrl = 'https://sbvp-sbvp.vercel.app/';
   const invitation = 'Te invitamos a descargar esta app que nos ayuda a organizarnos.\n\n¡Que tengas buena guardia! 👨‍🚒👩‍🚒💜';
   const shareData = {
     title: APP_TITLE,
