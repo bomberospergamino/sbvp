@@ -75,10 +75,11 @@ async function installApp(){
 }
 
 async function shareApp(){
+  const vercelUrl = 'https://sbvp.vercel.app/';
   const shareData = {
     title: APP_TITLE,
     text: 'Acceso al panel de herramientas operativas de Bomberos Voluntarios Pergamino.',
-    url: window.location.href
+    url: vercelUrl
   };
 
   if(navigator.share){
@@ -91,10 +92,10 @@ async function shareApp(){
   }
 
   try{
-    await navigator.clipboard.writeText(window.location.href);
+    await navigator.clipboard.writeText(vercelUrl);
     showToast('Link copiado al portapapeles.');
   }catch(err){
-    showToast(`Copiá este link: ${window.location.href}`);
+    showToast(`Copiá este link: ${vercelUrl}`);
   }
 }
 
