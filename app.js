@@ -5,8 +5,49 @@ const installBanner = document.getElementById('installBanner');
 const installBtn = document.getElementById('installBtn');
 const dismissInstallBtn = document.getElementById('dismissInstallBtn');
 const permanentInstallBtn = document.getElementById('permanentInstallBtn');
+const lastCodeUpdate = document.getElementById('lastCodeUpdate');
+
+loadLastCodeUpdate();
 
 let deferredInstallPrompt = null;
+
+async function loadLastCodeUpdate(){
+  if(!lastCodeUpdate) return;
+
+  const cacheKey = 'sbvpLastCodeUpdate';
+  const cachedDate = localStorage.getItem(cacheKey);
+  if(cachedDate) showLastCodeUpdate(cachedDate);
+
+  try{
+    const response = await fetch('https://api.github.com/repos/bomberospergamino/sbvp/commits/main', {
+      headers: { Accept: 'application/vnd.github+json' }
+    });
+    if(!response.ok) throw new Error('No se pudo consultar la actualización');
+
+    const data = await response.json();
+    const updateDate = data?.commit?.committer?.date;
+    if(!updateDate) throw new Error('La actualización no tiene fecha');
+
+    localStorage.setItem(cacheKey, updateDate);
+    showLastCodeUpdate(updateDate);
+  }catch(error){
+    if(!cachedDate) lastCodeUpdate.textContent = 'no disponible';
+  }
+}
+
+function showLastCodeUpdate(value){
+  const date = new Date(value);
+  if(Number.isNaN(date.getTime())) return;
+
+  lastCodeUpdate.dateTime = date.toISOString();
+  lastCodeUpdate.textContent = date.toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
 
 document.querySelectorAll('.accordion-trigger').forEach((trigger) => {
   trigger.addEventListener('click', () => {
@@ -75,10 +116,11 @@ async function installApp(){
 }
 
 async function shareApp(){
+  const vercelUrl = 'https://sbvp.vercel.app/';
   const shareData = {
     title: APP_TITLE,
     text: 'Acceso al panel de herramientas operativas de Bomberos Voluntarios Pergamino.',
-    url: window.location.href
+    url: vercelUrl
   };
 
   if(navigator.share){
@@ -91,10 +133,10 @@ async function shareApp(){
   }
 
   try{
-    await navigator.clipboard.writeText(window.location.href);
+    await navigator.clipboard.writeText(vercelUrl);
     showToast('Link copiado al portapapeles.');
   }catch(err){
-    showToast(`Copiá este link: ${window.location.href}`);
+    showToast(`Copiá este link: ${vercelUrl}`);
   }
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v15-hidrantes-ui';
+const CACHE_NAME = 'sbvp-home-v17-correccion-mix';
 const APP_SHELL = [
   './',
   './index.html',

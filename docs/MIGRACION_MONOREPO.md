@@ -37,3 +37,12 @@ El módulo Brigadas heredó del repositorio público un control administrativo i
 ## Paso posterior a la validación
 
 Una vez integrado este cambio en `main`, el proyecto de Vercel puede continuar conectado a `bomberospergamino/sbvp`. Después de validar producción, los repositorios de módulos pueden archivarse como históricos, dejando un enlace hacia este repositorio.
+
+## Corrección posterior de accesos
+
+La validación operativa posterior confirmó que dos rótulos de la portada habían quedado asociados a conceptos distintos de los esperados:
+
+- **Reporte Diario** debe abrir la aplicación `Control Diario` proveniente de `ControlesRealizados`, utilizada para limpieza, móviles, planillas, asistencia y firmas.
+- **Checks realizados** debe mostrar el seguimiento de controles de equipamiento de los últimos siete días, con fecha y responsables, a partir de la hoja `REGISTROS` del módulo Equipamiento.
+
+La aplicación local denominada `Reporte de guardia` se conserva en `apps/reporte-diario/` como antecedente y no se elimina, pero deja de ser el destino principal del acceso **Reporte Diario**.

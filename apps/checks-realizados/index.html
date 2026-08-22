@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checks de equipamiento realizados · SBVP</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="../../" aria-label="Volver al inicio"><img src="../../logo-sbvp.png" alt="SBVP"></a>
+    <div>
+      <p>Sociedad Bomberos Voluntarios Pergamino</p>
+      <h1>Checks de equipamiento realizados</h1>
+    </div>
+    <button id="refreshButton" type="button">↻ Actualizar</button>
+  </header>
+  <main>
+    <section class="summary">
+      <div><span>Período</span><strong id="periodLabel">Últimos 7 días</strong></div>
+      <div><span>Realizados</span><strong id="completedCount">0 / 0</strong></div>
+      <div><span>Pendientes</span><strong id="pendingCount">0</strong></div>
+    </section>
+    <p id="status" class="status" role="status">Cargando controles...</p>
+    <section id="checksGrid" class="checks-grid" aria-live="polite"></section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

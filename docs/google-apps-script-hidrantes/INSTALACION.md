@@ -43,6 +43,8 @@ Debe responder con `{"ok":true,...}`. Guardar la URL: será la conexión que usa
 ## Comportamiento de las altas
 
 - Un alta desde el mapa se guarda como `Pendiente` y crea inmediatamente su carpeta de fotos.
+- Durante el alta se pueden elegir hasta 6 fotos desde la galería o tomar fotos con la cámara. La aplicación las optimiza y el script las guarda directamente en la carpeta del hidrante.
+- En una edición administrativa también se pueden agregar fotos nuevas; las existentes se conservan.
 - Los hidrantes pendientes no se muestran al público hasta que un administrador los publique.
 - Editar, publicar o eliminar requiere una sesión obtenida con la clave administrativa.
 - Eliminar es un borrado lógico: conserva la fila y la carpeta para auditoría, pero deja de mostrar el punto.
