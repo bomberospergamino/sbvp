@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v20-compartir-con-logo';
+const CACHE_NAME = 'sbvp-home-v21-link-vercel-correcto';
 const APP_SHELL = [
   './',
   './index.html',
