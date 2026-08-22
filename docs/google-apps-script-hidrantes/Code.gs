@@ -165,14 +165,21 @@ function listHydrants_(params) {
   const ctx = getContext_();
   ensureHeaders_(ctx);
   const isAdmin = params.token && isValidAdmin_(params.token);
+  const detailLevel = String(params.fields || 'full').toLowerCase() === 'map' ? 'map' : 'full';
   const data = [];
-  for (let row = ctx.headerRow + 1; row <= ctx.sheet.getLastRow(); row++) {
-    const item = rowObject_(ctx, row);
-    if (!item.Nombre || truthy_(item.Eliminado)) continue;
-    if (!isAdmin && String(item.Publicación || '').toLowerCase() !== 'publicado') continue;
-    data.push(publicRecord_(item));
-  }
-  return { ok: true, hydrants: data };
+  const lastRow = ctx.sheet.getLastRow();
+  const rowCount = Math.max(lastRow - ctx.headerRow, 0);
+  const rows = rowCount
+    ? ctx.sheet.getRange(ctx.headerRow + 1, 1, rowCount, ctx.headers.length).getValues()
+    : [];
+
+  rows.forEach(values => {
+    const item = valuesToObject_(ctx, values);
+    if (!item.Nombre || truthy_(item.Eliminado)) return;
+    if (!isAdmin && String(item.Publicación || '').toLowerCase() !== 'publicado') return;
+    data.push(detailLevel === 'map' ? mapRecord_(item) : publicRecord_(item));
+  });
+  return { ok: true, detailLevel, hydrants: data };
 }
 
 function addHydrant_(data) {
@@ -369,7 +376,12 @@ function formatSheet_(ctx) {
 }
 
 function rowObject_(ctx, row) {
-  const values = ctx.sheet.getRange(row, 1, 1, ctx.sheet.getLastColumn()).getValues()[0], out = {};
+  const values = ctx.sheet.getRange(row, 1, 1, ctx.sheet.getLastColumn()).getValues()[0];
+  return valuesToObject_(ctx, values);
+}
+
+function valuesToObject_(ctx, values) {
+  const out = {};
   ctx.headers.forEach((header, i) => { if (header) out[canonicalHeader_(header)] = values[i]; });
   return out;
 }
@@ -406,6 +418,7 @@ function normalizePayload_(data) {
 }
 
 function validateHydrant_(data, isNew) { const d = normalizePayload_(data); if (isNew && !String(d.Nombre || '').trim()) throw new Error('El nombre es obligatorio.'); const lat = Number(d.Latitud), lng = Number(d.Longitud); if (isNew && (!Number.isFinite(lat) || !Number.isFinite(lng))) throw new Error('Latitud y longitud son obligatorias.'); if (d.Latitud !== undefined && (lat < -90 || lat > 90)) throw new Error('Latitud inválida.'); if (d.Longitud !== undefined && (lng < -180 || lng > 180)) throw new Error('Longitud inválida.'); if (d.Estado && !['Activo','Inactivo'].includes(d.Estado)) throw new Error('Estado inválido.'); }
+function mapRecord_(item) { return { id:item.ID, number:item['N°'], name:item.Nombre, status:item.Estado, lat:Number(item.Latitud), lng:Number(item.Longitud) }; }
 function publicRecord_(item) { return { id:item.ID, number:item['N°'], name:item.Nombre, status:item.Estado, publication:item.Publicación, lat:Number(item.Latitud), lng:Number(item.Longitud), schedule:item.Horario, height:item.Altura, suitableVehicles:item['Apto móviles'], couplingType:item['Tipo de acople'], responsible:item.Responsable, contact:item.Contacto, notes:item.Observaciones, photosFolder:item['Carpeta de fotos'], mainPhoto:item['Foto principal'], updatedAt:item['Fecha de actualización'] }; }
 function columnsFromHeaders_(headers) { const out={}; headers.forEach((h,i)=>{if(h)out[normalizeHeader_(h)]=i+1}); return out; }
 function canonicalHeader_(header) { const normalized=normalizeHeader_(header); return REQUIRED_HEADERS.find(h=>normalizeHeader_(h)===normalized)||header; }
