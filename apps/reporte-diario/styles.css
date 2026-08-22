@@ -29,6 +29,12 @@ body {
   margin: 10px auto 22px;
 }
 
+@media (min-width: 1200px) {
+  .app-shell {
+    width: min(1480px, calc(100% - 40px));
+  }
+}
+
 .hero-card,
 .section-card,
 .actions-bar,
