@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v16-hidrantes-fotos';
+const CACHE_NAME = 'sbvp-home-v17-correccion-mix';
 const APP_SHELL = [
   './',
   './index.html',

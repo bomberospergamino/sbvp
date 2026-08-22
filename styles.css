@@ -248,6 +248,13 @@ h2{font-size:1.25rem;color:#061f32}
 #dismissInstallBtn{background:rgba(255,255,255,.16);color:white;width:42px;padding:0;font-size:1.4rem}
 .hidden{display:none!important}
 
+.code-update-footer{
+  padding:0 16px 18px;
+  color:#7a8493;
+  text-align:center;
+  font-size:.78rem;
+}
+
 .toast{
   position:fixed;
   left:50%;
