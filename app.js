@@ -57,11 +57,10 @@ document.querySelectorAll('.accordion-trigger').forEach((trigger) => {
 });
 
 document.querySelectorAll('[data-pending]').forEach((el) => {
-  el.addEventListener('click', (event) => {
-    event.preventDefault();
-    const name = el.dataset.pending;
-    showToast(`${name}: acceso preparado para vincular cuando esté creado el repo.`);
-  });
+  el.classList.add('is-pending');
+  el.setAttribute('aria-disabled', 'true');
+  el.removeAttribute('href');
+  el.tabIndex = -1;
 });
 
 document.getElementById('shareBtn').addEventListener('click', shareApp);

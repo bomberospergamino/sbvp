@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v18-accesos-y-checks';
+const CACHE_NAME = 'sbvp-home-v19-proximamente-y-compartir';
 const APP_SHELL = [
   './',
   './index.html',
