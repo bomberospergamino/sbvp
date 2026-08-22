@@ -115,11 +115,12 @@ async function installApp(){
 }
 
 async function shareApp(){
-  const vercelUrl = 'https://sbvp.vercel.app/';
+  const publicAppUrl = 'https://bomberospergamino.github.io/sbvp/';
+  const invitation = 'Te invitamos a descargar esta app que nos ayuda a organizarnos.\n\n¡Que tengas buena guardia! 👨‍🚒👩‍🚒💜';
   const shareData = {
     title: APP_TITLE,
-    text: 'Acceso al panel de herramientas operativas de Bomberos Voluntarios Pergamino.',
-    url: vercelUrl
+    text: invitation,
+    url: publicAppUrl
   };
 
   if(navigator.share){
@@ -132,10 +133,10 @@ async function shareApp(){
   }
 
   try{
-    await navigator.clipboard.writeText(vercelUrl);
-    showToast('Link copiado al portapapeles.');
+    await navigator.clipboard.writeText(`${invitation}\n\n${publicAppUrl}`);
+    showToast('Invitación y link copiados al portapapeles.');
   }catch(err){
-    showToast(`Copiá este link: ${vercelUrl}`);
+    showToast(`Copiá este link: ${publicAppUrl}`);
   }
 }
 

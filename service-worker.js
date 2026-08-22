@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v19-proximamente-y-compartir';
+const CACHE_NAME = 'sbvp-home-v20-compartir-con-logo';
 const APP_SHELL = [
   './',
   './index.html',
