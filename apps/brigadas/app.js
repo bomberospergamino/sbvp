@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-calendario-14';
+const APP_VERSION = 'brigadas-asistencia-drive-15';
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
 const GOOGLE_SHEET_NAMES = [
@@ -308,6 +308,9 @@ function renderBrigades() {
       </div>
     `;
     card.addEventListener('click', () => {
+      if (state.selectedBrigade !== brigade.id_brigada) {
+        document.getElementById('attendanceNotes').value = '';
+      }
       state.selectedBrigade = brigade.id_brigada;
       renderBrigades();
       renderMembers();
@@ -1228,75 +1231,94 @@ async function generarPDFAsistencia(includeLoaded) {
     alert('No se pudo cargar jsPDF.');
     return;
   }
+  const generalNotes = document.getElementById('attendanceNotes').value.trim();
   setButtonLoading('saveAttendanceButton', true, 'Generando PDF...');
   setBrigadeActionStatus('Generando PDF de asistencia...');
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const logo = await imageToDataUrl(logoPath(brigade));
-  if (logo) {
-    doc.addImage(logo, 'JPEG', 14, 10, 22, 22);
-  } else {
-    doc.rect(14, 10, 22, 22);
-    doc.setFontSize(7);
-    doc.text('Logo pendiente', 16, 22);
-  }
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text(`Brigada ${brigade.nombre_brigada}`, 42, 20);
-  doc.setFontSize(10);
-  doc.text(new Date().toLocaleDateString('es-AR'), 170, 20);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Integrantes de la Brigada', 14, 34);
-  const body = members.map((person, index) => {
-    const name = [person.apellido, person.nombre].filter(Boolean).join(', ') || person.bombero || 'Sin nombre';
-    const selected = includeLoaded ? document.querySelector(`input[name="att-${index}"]:checked`)?.value : '';
-    const obs = includeLoaded ? document.querySelector(`[data-observation="${index}"]`)?.value || '' : '';
-    return [name, selected === 'P' ? 'X' : '', selected === 'A' ? 'X' : '', selected === 'Just.' ? 'X' : '', obs];
-  });
-  if (doc.autoTable) {
-    doc.autoTable({
-      startY: 40,
-      head: [['Integrante', 'P', 'A', 'Just.', 'Obs.']],
-      body,
-      styles: { fontSize: 9, cellPadding: 2.3 },
-      headStyles: { fillColor: [6, 52, 82], textColor: [255, 255, 255] },
-      columnStyles: {
-        0: { cellWidth: 84 },
-        1: { cellWidth: 16, halign: 'center' },
-        2: { cellWidth: 16, halign: 'center' },
-        3: { cellWidth: 20, halign: 'center' },
-        4: { cellWidth: 42 },
-      },
-      margin: { left: 14, right: 14 },
+  try {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const logo = await imageToDataUrl(logoPath(brigade));
+    if (logo) {
+      doc.addImage(logo, 'JPEG', 14, 10, 22, 22);
+    } else {
+      doc.rect(14, 10, 22, 22);
+      doc.setFontSize(7);
+      doc.text('Logo pendiente', 16, 22);
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(`Brigada ${brigade.nombre_brigada}`, 42, 20);
+    doc.setFontSize(10);
+    doc.text(new Date().toLocaleDateString('es-AR'), 170, 20);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Integrantes de la Brigada', 14, 34);
+    const body = members.map((person, index) => {
+      const name = [person.apellido, person.nombre].filter(Boolean).join(', ') || person.bombero || 'Sin nombre';
+      const selected = includeLoaded ? document.querySelector(`input[name="att-${index}"]:checked`)?.value : '';
+      const obs = includeLoaded ? document.querySelector(`[data-observation="${index}"]`)?.value || '' : '';
+      return [name, selected === 'P' ? 'X' : '', selected === 'A' ? 'X' : '', selected === 'Just.' ? 'X' : '', obs];
     });
+    if (doc.autoTable) {
+      doc.autoTable({
+        startY: 40,
+        head: [['Integrante', 'P', 'A', 'Just.', 'Obs.']],
+        body,
+        styles: { fontSize: 9, cellPadding: 2.3 },
+        headStyles: { fillColor: [6, 52, 82], textColor: [255, 255, 255] },
+        columnStyles: {
+          0: { cellWidth: 84 },
+          1: { cellWidth: 16, halign: 'center' },
+          2: { cellWidth: 16, halign: 'center' },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 42 },
+        },
+        margin: { left: 14, right: 14 },
+      });
+    }
+    let y = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 44) + 10;
+    if (y > 242) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.text('Observaciones / temática de la capacitación:', 14, y);
+    doc.setFont('helvetica', 'normal');
+    const notesLines = generalNotes ? doc.splitTextToSize(generalNotes, 182) : [''];
+    doc.text(notesLines, 14, y + 6);
+    const signatureY = Math.max(y + 22 + (notesLines.length - 1) * 5, 265);
+    if (signatureY > 274) {
+      doc.addPage();
+      doc.text('Responsable / Instructor', 14, 282);
+      doc.text('Firma', 150, 282);
+      doc.line(14, 274, 78, 274);
+      doc.line(135, 274, 196, 274);
+    } else {
+      doc.text('Responsable / Instructor', 14, signatureY + 8);
+      doc.text('Firma', 150, signatureY + 8);
+      doc.line(14, signatureY, 78, signatureY);
+      doc.line(135, signatureY, 196, signatureY);
+    }
+    const filename = `asistencia-${brigade.id_brigada}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const base64 = doc.output('datauristring').split(',')[1];
+    setBrigadeActionStatus('PDF listo. Enviando a la carpeta de Drive de la brigada...');
+    await guardarReporteDrive({
+      filename,
+      mime_type: 'application/pdf',
+      base64,
+      id_brigada: brigade.id_brigada,
+      brigada: brigade.nombre_brigada,
+      tipo_reporte: 'asistencia',
+      observaciones: generalNotes,
+    });
+    const shared = await downloadAndSharePdf(doc, filename, `Asistencia ${brigade.nombre_brigada}`);
+    setBrigadeActionStatus(shared
+      ? 'PDF guardado en la carpeta de la brigada, descargado y abierto para compartir.'
+      : 'PDF guardado en la carpeta de la brigada y descargado.');
+  } catch (error) {
+    console.error(error);
+    setBrigadeActionStatus(`No se pudo guardar la asistencia: ${error.message || error}`);
+  } finally {
+    setButtonLoading('saveAttendanceButton', false);
   }
-  let y = doc.lastAutoTable ? doc.lastAutoTable.finalY : 44;
-  y = Math.max(y + 10, 235);
-  if (y > 248) {
-    doc.addPage();
-    y = 20;
-  }
-  doc.text('Observaciones:', 14, y);
-  doc.line(14, y + 8, 196, y + 8);
-  doc.text('Responsable / Instructor', 14, 282);
-  doc.text('Firma', 150, 282);
-  doc.line(14, 274, 78, 274);
-  doc.line(135, 274, 196, 274);
-  const filename = `asistencia-${brigade.id_brigada}-${new Date().toISOString().slice(0, 10)}.pdf`;
-  const base64 = doc.output('datauristring').split(',')[1];
-  setBrigadeActionStatus('PDF listo. Enviando a la carpeta de Drive...');
-  await guardarReporteDrive({
-    filename,
-    mime_type: 'application/pdf',
-    base64,
-    id_brigada: brigade.id_brigada,
-    brigada: brigade.nombre_brigada,
-    tipo_reporte: 'asistencia',
-  });
-  const shared = await downloadAndSharePdf(doc, filename, `Asistencia ${brigade.nombre_brigada}`);
-  setBrigadeActionStatus(shared
-    ? 'PDF descargado, guardado y abierto para compartir.'
-    : 'PDF descargado y enviado al Web App. Si no se abrio compartir, este navegador no lo permite.');
-  setButtonLoading('saveAttendanceButton', false);
 }
 
 async function guardarReporteDrive(payload) {
