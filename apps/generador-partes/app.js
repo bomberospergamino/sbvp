@@ -5,7 +5,7 @@ const seed = {
     "09-CEREMONIAL", "10-MAT PEL", "11-INCENDIO FORESTAL"
   ],
   roles: ["D", "R", "CH", "G/P"],
-  mobiles: ["Movil N° 1", "Movil N° 3", "Movil N° 5", "Movil N° 6", "Movil N° 8", "Movil N° 11", "Movil N° 12", "Movil N° 19", "Movil N° 24", "Movil N° 25", "Movil N° 26", "Movil N° 27"],
+  mobiles: ["Movil N° 1", "Movil N° 3", "Movil N° 5", "Movil N° 6", "Movil N° 8", "Movil N° 9", "Movil N° 11", "Movil N° 12", "Movil N° 19", "Movil N° 24", "Movil N° 25", "Movil N° 26", "Movil N° 27"],
   people: [
     ["Morro, Marcos", "Oficial Principal"],
     ["Van Becelaere, David", "Oficial Inspector"],
