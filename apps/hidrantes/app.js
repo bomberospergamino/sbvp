@@ -1,6 +1,7 @@
 const API_URL='https://script.google.com/macros/s/AKfycbxKKdJ3tNnt33UaPymYtwzNRGOkcCuKnNgJnG7zsYufVLZDtyrzGtxo1415jbpd8mU7uQ/exec';
 const PERGAMINO=[-33.889,-60.573];
-let hydrants=[],markers=new Map(),adding=false,selectingOrigin=false,origin=null,originMarker=null,adminToken='',selectedPhotos=[];
+const HYDRANT_CACHE_KEY='sbvpHydrantsCacheV1';
+let hydrants=[],markers=new Map(),adding=false,selectingOrigin=false,origin=null,originMarker=null,adminToken='',selectedPhotos=[],detailsLoadPromise=Promise.resolve();
 const map=L.map('map',{zoomControl:false}).setView(PERGAMINO,11);
 L.control.zoom({position:'bottomright'}).addTo(map);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
@@ -35,9 +36,17 @@ form.addEventListener('submit',async event=>{
 
 async function loadHydrants(notify=false){
   $('refreshBtn').classList.add('spinning');
-  try{const response=await fetch(`${API_URL}?action=list&_=${Date.now()}`);const result=await response.json();if(!result.ok)throw new Error(result.error);hydrants=result.hydrants||[];render();if(notify)showToast('Mapa actualizado.');}
+  try{const response=await fetch(`${API_URL}?action=list&fields=map&_=${Date.now()}`);const result=await response.json();if(!result.ok)throw new Error(result.error);hydrants=result.hydrants||[];saveHydrantCache();render();if(notify)showToast('Ubicaciones actualizadas. Completando fichas…');detailsLoadPromise=result.detailLevel==='map'?loadHydrantDetailsInBackground():Promise.resolve();}
   catch(error){showToast('No se pudieron cargar los hidrantes.');console.error(error)}finally{$('refreshBtn').classList.remove('spinning')}
 }
+
+async function loadHydrantDetailsInBackground(){
+  try{const response=await fetch(`${API_URL}?action=list&fields=full&_=${Date.now()}`);const result=await response.json();if(!result.ok)throw new Error(result.error);const detailsById=new Map((result.hydrants||[]).map(item=>[String(item.id),item]));hydrants=hydrants.map(item=>({...item,...(detailsById.get(String(item.id))||{})}));saveHydrantCache();renderList();}
+  catch(error){console.warn('Las ubicaciones cargaron, pero faltan detalles de algunas fichas.',error)}
+}
+
+function loadCachedHydrants(){try{const cached=JSON.parse(localStorage.getItem(HYDRANT_CACHE_KEY)||'[]');if(Array.isArray(cached)&&cached.length){hydrants=cached;render()}}catch(error){console.warn('No se pudo recuperar la copia rápida de hidrantes.',error)}}
+function saveHydrantCache(){try{localStorage.setItem(HYDRANT_CACHE_KEY,JSON.stringify(hydrants))}catch(error){console.warn('No se pudo guardar la copia rápida de hidrantes.',error)}}
 
 function toggleAdding(){adding?stopModes():startAdding()}
 function startAdding(){stopModes();adding=true;$('map').style.cursor='crosshair';$('mapHint').textContent='Tocá el lugar exacto del nuevo hidrante.';$('mapHint').classList.remove('hidden');$('addBtn').textContent='× Cancelar';scrollToMap()}
@@ -53,7 +62,7 @@ function render(){renderMarkers();$('count').textContent=hydrants.length;renderL
 function renderMarkers(){markers.forEach(marker=>marker.remove());markers.clear();hydrants.forEach(item=>{const state=item.status==='Inactivo'?'Inactivo':'Activo';const icon=L.divIcon({className:'hydrant-marker',html:`<div class="hydrant-pin ${state==='Inactivo'?'fuera-servicio':''}"><span>💧</span></div>`,iconSize:[34,34],iconAnchor:[17,31]});const marker=L.marker([item.lat,item.lng],{icon}).addTo(map);const distance=origin?formatDistance(distanceKm(origin,item)):'';marker.bindPopup(`<div class="mini-popup"><strong>${escapeHtml(item.name)}</strong><small>${state}${distance?` · ${distance}`:''}</small><button type="button" data-open-id="${escapeHtml(String(item.id))}">Ver información</button></div>`);marker.on('popupopen',event=>{event.popup.getElement().querySelector('[data-open-id]')?.addEventListener('click',()=>showDetails(item.id))});markers.set(String(item.id),marker)})}
 function renderList(){const term=$('searchInput').value.trim().toLowerCase();let filtered=hydrants.filter(item=>[item.name,item.status,item.schedule,item.responsible,item.contact,item.notes].join(' ').toLowerCase().includes(term));if(origin)filtered=filtered.slice().sort((a,b)=>distanceKm(origin,a)-distanceKm(origin,b));$('emptyState').classList.toggle('hidden',hydrants.length>0||term.length>0);$('hydrantList').innerHTML=filtered.map(item=>{const distance=origin?formatDistance(distanceKm(origin,item)):'';return `<button class="hydrant-card" data-id="${escapeHtml(String(item.id))}" type="button"><span class="status-dot ${item.status==='Inactivo'?'fuera-servicio':''}"></span><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.status||'Sin estado')}${distance?` · <span class="distance">${distance}</span>`:''}</small></span><span class="chev">›</span></button>`}).join('');$('hydrantList').querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>showDetails(button.dataset.id)))}
 
-async function showDetails(id){const item=hydrants.find(h=>String(h.id)===String(id));if(!item)return;map.flyTo([item.lat,item.lng],Math.max(map.getZoom(),14));details.showModal();$('detailsContent').innerHTML='<div class="loading">Cargando ficha…</div>';let photos=[];try{const response=await fetch(`${API_URL}?action=photos&id=${encodeURIComponent(item.id)}&_=${Date.now()}`);const result=await response.json();if(result.ok)photos=result.photos||[]}catch(error){console.warn(error)}
+async function showDetails(id){let item=hydrants.find(h=>String(h.id)===String(id));if(!item)return;map.flyTo([item.lat,item.lng],Math.max(map.getZoom(),14));details.showModal();$('detailsContent').innerHTML='<div class="loading">Cargando ficha…</div>';await detailsLoadPromise;item=hydrants.find(h=>String(h.id)===String(id))||item;let photos=[];try{const response=await fetch(`${API_URL}?action=photos&id=${encodeURIComponent(item.id)}&_=${Date.now()}`);const result=await response.json();if(result.ok)photos=result.photos||[]}catch(error){console.warn(error)}
   const distance=origin?formatDistance(distanceKm(origin,item)):'';
   const fields=[['Horario',item.schedule],['Altura',item.height],['Apto móviles',item.suitableVehicles],['Tipo de acople',item.couplingType],['Responsable',item.responsible],['Contacto',item.contact]];
   $('detailsContent').innerHTML=`<div class="details-hero"><div class="dialog-head"><div><p class="eyebrow">Ficha del hidrante</p><h2>${escapeHtml(item.name)}</h2><span class="status-badge ${item.status}">● ${escapeHtml(item.status||'Sin estado')}</span></div><button class="close" type="button" data-close-details aria-label="Cerrar">×</button></div></div><div class="details-body">${distance?`<p class="details-distance">◎ A ${distance} de la ubicación seleccionada</p>`:''}<div class="details-grid">${fields.map(([label,value])=>`<div class="detail"><span>${label}</span><strong>${escapeHtml(value||'Sin información')}</strong></div>`).join('')}</div>${item.notes?`<div class="details-notes">${escapeHtml(item.notes)}</div>`:''}${photos.length?`<div class="photo-gallery">${photos.map(photo=>`<a href="${escapeAttr(photo.url)}" target="_blank" rel="noopener"><img src="${escapeAttr(photo.url)}" alt="${escapeAttr(photo.name)}" loading="lazy"></a>`).join('')}</div>`:''}<div class="details-actions">${item.contact?`<a class="primary" href="tel:${escapeAttr(phoneOnly(item.contact))}">☎ Llamar</a>`:''}${item.photosFolder?`<a href="${escapeAttr(item.photosFolder)}" target="_blank" rel="noopener"><button type="button">▣ Ver fotos</button></a>`:''}<a href="https://www.google.com/maps/dir/?api=1&destination=${item.lat},${item.lng}" target="_blank" rel="noopener"><button type="button">↗ Cómo llegar</button></a><button type="button" data-edit-id="${escapeAttr(String(item.id))}">Editar</button></div></div>`;
@@ -80,4 +89,5 @@ function escapeHtml(value=''){const node=document.createElement('div');node.text
 function escapeAttr(value=''){return escapeHtml(value).replace(/"/g,'&quot;')}
 function showToast(message,duration=3600){const toast=$('toast');toast.textContent=message;toast.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>toast.classList.remove('show'),duration)}
 
+loadCachedHydrants();
 loadHydrants();
