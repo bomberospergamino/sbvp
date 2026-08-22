@@ -208,6 +208,36 @@ h2{font-size:1.25rem;color:#061f32}
 .sub-link strong{display:block;color:var(--navy)}
 .sub-link small{display:block;color:var(--muted);margin-top:4px}
 .sub-link:hover{border-color:rgba(6,52,82,.42);background:#f4f9fc}
+[data-pending]{
+  position:relative;
+  overflow:hidden;
+  cursor:not-allowed!important;
+  opacity:.68;
+  pointer-events:none;
+  user-select:none;
+}
+[data-pending]::after{
+  content:'PRÓXIMAMENTE';
+  position:absolute;
+  z-index:2;
+  left:-34px;
+  right:-34px;
+  top:50%;
+  transform:translateY(-50%) rotate(-5deg);
+  padding:7px 4px;
+  background:rgba(223,52,56,.94);
+  color:#fff;
+  text-align:center;
+  font-size:.68rem;
+  font-weight:950;
+  letter-spacing:.09em;
+  box-shadow:0 3px 10px rgba(6,52,82,.22);
+}
+[data-pending]:hover,[data-pending]:focus-visible{
+  transform:none;
+  border-color:var(--line);
+  box-shadow:var(--shadow);
+}
 .sub-group{
   display:grid;
   gap:10px;
