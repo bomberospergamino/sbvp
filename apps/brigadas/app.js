@@ -1,6 +1,7 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-asistencia-drive-15';
+const APP_VERSION = 'brigadas-calendario-navegable-19';
+const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
 const GOOGLE_SHEET_NAMES = [
@@ -42,8 +43,8 @@ const state = {
   selectedBrigade: 'rescate_acuatico',
   calendarDate: new Date(),
   adminMonth: monthKey(new Date()),
-  adminDateFrom: '',
-  adminDateTo: '',
+  adminPeriodType: 'month',
+  adminYear: String(new Date().getFullYear()),
   currentFileName: '',
   localMeetings: loadStoredMeetings(),
   editingEventId: '',
@@ -53,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
   renderAll();
   loadGoogleSheet();
+  startCalendarSync();
 });
 
 function bindEvents() {
@@ -65,11 +67,18 @@ function bindEvents() {
   document.getElementById('backToBrigadesButton').addEventListener('click', closeBrigadeDetail);
   document.getElementById('prevMonthButton').addEventListener('click', () => changeMonth(-1));
   document.getElementById('nextMonthButton').addEventListener('click', () => changeMonth(1));
+  document.getElementById('homePrevMonthButton').addEventListener('click', () => changeMonth(-1));
+  document.getElementById('homeNextMonthButton').addEventListener('click', () => changeMonth(1));
+  document.getElementById('homeCalendarPrevInner').addEventListener('click', () => changeMonth(-1));
+  document.getElementById('homeCalendarNextInner').addEventListener('click', () => changeMonth(1));
+  document.getElementById('calendarPrevInner').addEventListener('click', () => changeMonth(-1));
+  document.getElementById('calendarNextInner').addEventListener('click', () => changeMonth(1));
   document.getElementById('todayButton').addEventListener('click', () => {
     state.calendarDate = new Date();
     renderCalendar();
   });
   document.getElementById('downloadCalendarButton').addEventListener('click', exportarCalendarioPNG);
+  document.getElementById('shareCalendarButton').addEventListener('click', compartirCalendarioPNG);
   document.getElementById('printCalendarButton').addEventListener('click', () => window.print());
   document.getElementById('scheduleMeetingButton').addEventListener('click', () => openScheduleDialog());
   document.getElementById('homeScheduleButton').addEventListener('click', () => openScheduleDialog());
@@ -87,9 +96,53 @@ function bindEvents() {
   });
   document.getElementById('exportCsvButton').addEventListener('click', exportAdminCsv);
   document.getElementById('exportAdminPdfButton').addEventListener('click', exportAdminPdf);
-  ['adminDateFrom', 'adminDateTo', 'adminBrigadeFilter', 'adminStateFilter', 'onlyMissingFilter', 'onlyHighFilter'].forEach((id) => {
+  ['adminPeriodType', 'adminYear', 'adminMonth', 'adminBrigadeFilter', 'adminStateFilter', 'onlyMissingFilter', 'onlyHighFilter'].forEach((id) => {
     document.getElementById(id).addEventListener('change', renderAdmin);
   });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) syncCalendarFromOnline();
+  });
+}
+
+let calendarSyncTimer = null;
+let calendarSyncInProgress = false;
+
+function startCalendarSync() {
+  clearInterval(calendarSyncTimer);
+  calendarSyncTimer = setInterval(() => {
+    if (!document.hidden) syncCalendarFromOnline();
+  }, CALENDAR_SYNC_INTERVAL_MS);
+}
+
+async function fetchSharedCalendar() {
+  let payload = await loadJsonp(`${APPS_SCRIPT_URL}?action=read_calendar&cacheBust=${Date.now()}`);
+  if (!payload?.sheets?.ENCUENTROS) {
+    payload = await loadJsonp(`${APPS_SCRIPT_URL}?action=read_all&cacheBust=${Date.now()}`);
+  }
+  if (!payload?.ok || !payload.sheets?.ENCUENTROS) {
+    throw new Error(payload?.error || 'No se pudo leer el calendario compartido');
+  }
+  return payload.sheets;
+}
+
+async function syncCalendarFromOnline(showFeedback = false) {
+  if (calendarSyncInProgress) return false;
+  calendarSyncInProgress = true;
+  try {
+    const sharedSheets = await fetchSharedCalendar();
+    state.sheets = { ...state.sheets, ...sharedSheets };
+    clearSyncedLocalMeetings();
+    renderCalendar();
+    renderAdmin();
+    if (showFeedback) showAppToast('Calendario actualizado para todos.', 'success');
+    return true;
+  } catch (error) {
+    console.warn('No se pudo actualizar el calendario compartido', error);
+    if (showFeedback) showAppToast('No se pudo actualizar el calendario online.', 'warning');
+    return false;
+  } finally {
+    calendarSyncInProgress = false;
+  }
 }
 
 async function handleWorkbookUpload(event) {
@@ -265,6 +318,7 @@ function openView(viewId) {
   if (viewId !== 'brigadasView') closeBrigadeDetail(false);
   document.querySelectorAll('.view').forEach((view) => view.classList.toggle('active', view.id === viewId));
   document.querySelectorAll('.nav-button').forEach((button) => button.classList.toggle('active', button.dataset.view === viewId));
+  if (viewId === 'adminView') loadGoogleSheet();
 }
 
 function requestAdminAccess() {
@@ -309,6 +363,7 @@ function renderBrigades() {
     `;
     card.addEventListener('click', () => {
       if (state.selectedBrigade !== brigade.id_brigada) {
+        document.getElementById('attendanceTopic').value = '';
         document.getElementById('attendanceNotes').value = '';
       }
       state.selectedBrigade = brigade.id_brigada;
@@ -578,7 +633,17 @@ function renderCalendarInto({ gridId, titleId, counterId, missingId, selectedMon
       pill.className = `event-pill ${normalizeState(meeting.estado)}`;
       const brigade = getBrigadasActivas().find((item) => item.id_brigada === meeting.id_brigada);
       const hour = meeting.hora_inicio || '';
-      pill.innerHTML = `<img src="${logoPath(brigade || {})}" alt=""><span class="event-hour">${escapeHtml(hour)}</span>`;
+      const brigadeLabel = meeting.brigada || brigade?.nombre_brigada || meeting.id_brigada || 'Brigada';
+      const topic = meeting.tema || 'Encuentro mensual';
+      pill.title = `${brigadeLabel} · ${hour} · ${topic}`;
+      pill.innerHTML = `
+        <img src="${logoPath(brigade || {})}" alt="">
+        <span class="event-details">
+          <strong>${escapeHtml(brigadeLabel)}</strong>
+          <span>${escapeHtml(topic)}</span>
+        </span>
+        <span class="event-hour">${escapeHtml(hour)}</span>
+      `;
       cell.appendChild(pill);
     });
     grid.appendChild(cell);
@@ -592,15 +657,23 @@ function renderCalendarInto({ gridId, titleId, counterId, missingId, selectedMon
 }
 
 function setupAdminFilters() {
-  const dateFrom = document.getElementById('adminDateFrom');
-  const dateTo = document.getElementById('adminDateTo');
+  const periodType = document.getElementById('adminPeriodType');
+  const year = document.getElementById('adminYear');
+  const month = document.getElementById('adminMonth');
   const brigade = document.getElementById('adminBrigadeFilter');
   const status = document.getElementById('adminStateFilter');
-  const range = getDefaultAdminRange();
-  if (!state.adminDateFrom) state.adminDateFrom = range.from;
-  if (!state.adminDateTo) state.adminDateTo = range.to;
-  dateFrom.value = state.adminDateFrom;
-  dateTo.value = state.adminDateTo;
+  const selectedMonth = state.adminMonth || monthKey(new Date());
+  const years = getAvailableMetricYears();
+  year.innerHTML = '';
+  years.forEach((value) => year.add(new Option(String(value), String(value))));
+  year.value = state.adminYear || selectedMonth.slice(0, 4);
+  month.innerHTML = '';
+  Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(2020, index, 1);
+    month.add(new Option(date.toLocaleDateString('es-AR', { month: 'long' }), String(index + 1).padStart(2, '0')));
+  });
+  month.value = selectedMonth.slice(5, 7);
+  periodType.value = state.adminPeriodType || 'month';
   brigade.innerHTML = '<option value="">Todas</option>';
   getBrigadasActivas().forEach((item) => brigade.add(new Option(item.nombre_brigada, item.id_brigada)));
   status.innerHTML = '<option value="">Todos</option><option>OK</option><option>Observado</option><option>Critico</option>';
@@ -616,17 +689,24 @@ function setupScheduleOptions() {
 }
 
 function renderAdmin() {
-  state.adminDateFrom = document.getElementById('adminDateFrom').value || getDefaultAdminRange().from;
-  state.adminDateTo = document.getElementById('adminDateTo').value || getDefaultAdminRange().to;
-  const fullSummary = calcularResumenAdminRango(state.adminDateFrom, state.adminDateTo);
+  const period = getSelectedAdminPeriod();
+  state.adminPeriodType = period.type;
+  state.adminYear = period.year;
+  state.adminMonth = `${period.year}-${period.month}`;
+  document.getElementById('adminMonthLabel').classList.toggle('hidden', period.type === 'year');
+  document.getElementById('adminSummaryTitle').textContent = period.type === 'year'
+    ? `Métricas anuales por brigada · ${period.year}`
+    : `Métricas mensuales por brigada · ${period.label}`;
+  const fullSummary = calcularResumenAdminRango(period.from, period.to, period.expectedMonths);
   const summary = fullSummary.filter(filterAdminRow);
   const kpis = calculateKpis(fullSummary);
   document.getElementById('adminKpis').innerHTML = [
     ['Brigadas activas', kpis.active],
-    ['Encuentros cubiertos este mes', `${kpis.covered} / ${kpis.active}`],
-    ['% reuniones cumplidas', `${kpis.meetingCompliance}%`],
-    ['Faltante mensual', kpis.missing],
-    ['Asistencia promedio mensual', `${kpis.avgAttendance}%`],
+    ['Meses cubiertos', `${kpis.covered} / ${kpis.expected}`],
+    ['Encuentros realizados', kpis.realized],
+    ['% cumplimiento', `${kpis.meetingCompliance}%`],
+    ['Meses pendientes', kpis.missing],
+    ['Asistencia promedio', `${kpis.avgAttendance}%`],
     ['Indice general', `${kpis.generalIndex}%`],
     ['Necesidades pendientes', kpis.pendingNeeds],
     ['Checks criticos', kpis.criticalChecks],
@@ -635,8 +715,8 @@ function renderAdmin() {
   document.getElementById('adminTable').innerHTML = summary.map((row) => `
     <tr>
       <td>${escapeHtml(row.brigada)}</td>
-      <td>${row.cumple_encuentro_mensual ? 'OK' : 'Falta programar'}</td>
-      <td>${row.encuentros_validos_mes}</td>
+      <td>${row.meses_cubiertos} / ${row.meses_esperados}</td>
+      <td>${row.encuentros_realizados}</td>
       <td>${row.cantidad_asistencias}</td>
       <td>${row.total_presentes}</td>
       <td>${row.total_ausentes}</td>
@@ -647,12 +727,14 @@ function renderAdmin() {
       <td><span class="badge ${row.estado_general.toLowerCase()}">${row.estado_general}</span></td>
     </tr>
   `).join('');
+  renderAttendanceByPerson(period.from, period.to);
   renderAlerts(fullSummary);
-  renderAdminEvents();
+  renderAdminEvents(period.from, period.to);
 }
 
-function renderAdminEvents() {
-  const rows = getEncuentrosRango(state.adminDateFrom, state.adminDateTo).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+function renderAdminEvents(from, to) {
+  const period = from && to ? { from, to } : getSelectedAdminPeriod();
+  const rows = getEncuentrosRango(period.from, period.to).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
   document.getElementById('adminEventsTable').innerHTML = rows.map((event) => `
     <tr>
       <td>${escapeHtml(formatDateInput(event.fecha))}</td>
@@ -679,8 +761,14 @@ function openScheduleDialog(eventId = '') {
   document.getElementById('scheduleTime').value = editing?.hora_inicio || '20:00';
   document.getElementById('scheduleTopic').value = editing?.tema || '';
   document.getElementById('scheduleResponsible').value = editing?.responsable || '';
+  document.getElementById('scheduleStatus').value = editing?.estado || 'Programado';
   document.getElementById('scheduleMessage').classList.add('hidden');
   document.getElementById('scheduleDialog').showModal();
+}
+
+function createMeetingId() {
+  if (window.crypto?.randomUUID) return `enc_${window.crypto.randomUUID()}`;
+  return `enc_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 async function handleScheduleSubmit(event) {
@@ -689,7 +777,7 @@ async function handleScheduleSubmit(event) {
   const brigade = getBrigadasActivas().find((item) => item.id_brigada === document.getElementById('scheduleBrigade').value);
   const payload = {
     action: state.editingEventId ? 'editar_encuentro' : 'programar_encuentro',
-    id_encuentro: state.editingEventId || `enc_${Date.now()}`,
+    id_encuentro: state.editingEventId || createMeetingId(),
     fecha: document.getElementById('scheduleDate').value,
     mes_periodo: monthKey(document.getElementById('scheduleDate').value),
     id_brigada: brigade.id_brigada,
@@ -700,7 +788,7 @@ async function handleScheduleSubmit(event) {
     lugar: '',
     hora_inicio: document.getElementById('scheduleTime').value,
     hora_fin: '',
-    estado: 'Programado',
+    estado: document.getElementById('scheduleStatus').value || 'Programado',
     observaciones: 'Cargado desde modulo Brigadas',
   };
   const message = document.getElementById('scheduleMessage');
@@ -773,7 +861,7 @@ function clearSyncedLocalMeetings() {
 async function refreshFromSheetsAfterSchedule(expectedMeetingId = '') {
   try {
     await new Promise((resolve) => setTimeout(resolve, 900));
-    await loadGoogleSheet();
+    await syncCalendarFromOnline();
     if (expectedMeetingId && !meetingExistsInSheet(expectedMeetingId)) {
       state.localMeetings = state.localMeetings.filter((row) => normalizeRow(row).id_encuentro !== expectedMeetingId);
       saveStoredMeetings();
@@ -860,12 +948,12 @@ async function waitForCalendarWrite(payload) {
   for (let attempt = 0; attempt < 6; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 1200));
     try {
-      const data = await loadJsonp(`${APPS_SCRIPT_URL}?action=read_all&cacheBust=${Date.now()}`);
-      const meetings = (data?.sheets?.ENCUENTROS || []).map(normalizeRow);
+      const sheets = await fetchSharedCalendar();
+      const meetings = (sheets.ENCUENTROS || []).map(normalizeRow);
       const exists = meetings.some((row) => row.id_encuentro === eventId);
       if (payload.action === 'eliminar_encuentro') return !exists;
       if (exists) {
-        state.sheets = data.sheets;
+        state.sheets = { ...state.sheets, ...sheets };
         clearSyncedLocalMeetings();
         renderCalendar();
         renderAdmin();
@@ -908,7 +996,7 @@ function submitAppsScriptForm(payload) {
 
 function renderAlerts(summary) {
   const alerts = [];
-  summary.filter((row) => !row.cumple_encuentro_mensual).forEach((row) => alerts.push(`Brigada sin encuentro mensual: ${row.brigada}`));
+  summary.filter((row) => !row.cumple_encuentro_mensual).forEach((row) => alerts.push(`Meses sin encuentro para ${row.brigada}: ${Math.max(row.meses_esperados - row.meses_cubiertos, 0)}`));
   summary.filter((row) => row.total_convocados > 0 && row.porcentaje_asistencia < 75).forEach((row) => alerts.push(`Asistencia menor a 75%: ${row.brigada}`));
   summary.filter((row) => row.checks_criticos > 0).forEach((row) => alerts.push(`Checks criticos de equipamiento: ${row.brigada}`));
   summary.filter((row) => row.necesidades_alta_prioridad > 0).forEach((row) => alerts.push(`Necesidades de alta prioridad: ${row.brigada}`));
@@ -925,7 +1013,7 @@ function filterAdminRow(row) {
   const onlyHigh = document.getElementById('onlyHighFilter').checked;
   if (brigade && row.id_brigada !== brigade) return false;
   if (status && row.estado_general !== status) return false;
-  if (onlyMissing && row.cumple_encuentro_mensual) return false;
+  if (onlyMissing && row.meses_cubiertos >= row.meses_esperados) return false;
   if (onlyHigh && row.necesidades_alta_prioridad === 0) return false;
   return true;
 }
@@ -1049,10 +1137,12 @@ function calcularResumenAdmin(mes_periodo) {
   });
 }
 
-function calcularResumenAdminRango(from, to) {
+function calcularResumenAdminRango(from, to, expectedMonths = 1) {
   const meetings = getEncuentrosRango(from, to);
   return getBrigadasActivas().map((brigade) => {
     const validMeetings = meetings.filter((meeting) => meeting.id_brigada === brigade.id_brigada && VALID_MEETING_STATES.has(normalizeState(meeting.estado)));
+    const realizedMeetings = meetings.filter((meeting) => meeting.id_brigada === brigade.id_brigada && normalizeState(meeting.estado) === 'realizado');
+    const coveredMonths = new Set(validMeetings.map((meeting) => meeting.mes_periodo || monthKey(parseDate(meeting.fecha))).filter(Boolean)).size;
     const attendance = calcularPorcentajeAsistenciaRango(brigade.id_brigada, from, to);
     const needs = getNecesidadesPendientes(brigade.id_brigada);
     const equipment = getEstadoEquipamientoRango(brigade.id_brigada, from, to);
@@ -1063,7 +1153,10 @@ function calcularResumenAdminRango(from, to) {
       id_brigada: brigade.id_brigada,
       brigada: brigade.nombre_brigada,
       encuentros_validos_mes: validMeetings.length,
-      cumple_encuentro_mensual: validMeetings.length > 0,
+      encuentros_realizados: realizedMeetings.length,
+      meses_cubiertos: coveredMonths,
+      meses_esperados: expectedMonths,
+      cumple_encuentro_mensual: coveredMonths >= expectedMonths,
       cantidad_asistencias: attendance.records,
       total_convocados: attendance.total,
       total_presentes: attendance.present,
@@ -1164,23 +1257,139 @@ function detectRepeatedAbsences() {
   return Array.from(absences.values()).filter((item) => item.count >= 3);
 }
 
-async function exportarCalendarioPNG() {
+async function crearImagenCalendario() {
   const node = document.getElementById('calendarExport');
   node.classList.add('export-mode');
   try {
+    await Promise.all(Array.from(node.querySelectorAll('img')).map((image) => image.complete
+      ? Promise.resolve()
+      : new Promise((resolve) => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      })));
     const canvas = await html2canvas(node, {
       backgroundColor: '#ffffff',
       scale: 2,
       width: node.scrollWidth,
+      height: node.scrollHeight,
       windowWidth: Math.max(node.scrollWidth, 1200),
+      windowHeight: node.scrollHeight,
+      useCORS: true,
     });
-    const link = document.createElement('a');
-    link.download = `brigadas-calendario-${monthKey(state.calendarDate)}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    return await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('No se pudo crear la imagen')), 'image/png'));
   } finally {
     node.classList.remove('export-mode');
   }
+}
+
+async function exportarCalendarioPNG() {
+  setButtonLoading('downloadCalendarButton', true, 'Preparando PNG...');
+  try {
+    const blob = await crearImagenCalendario();
+    downloadBlob(blob, `brigadas-calendario-${monthKey(state.calendarDate)}.png`, 'image/png');
+    showAppToast('Calendario completo descargado en PNG.', 'success');
+  } catch (error) {
+    console.error(error);
+    showAppToast('No se pudo generar el PNG del calendario.', 'warning');
+  } finally {
+    setButtonLoading('downloadCalendarButton', false);
+  }
+}
+
+async function compartirCalendarioPNG() {
+  setButtonLoading('shareCalendarButton', true, 'Preparando imagen...');
+  try {
+    const blob = await crearImagenCalendario();
+    const filename = `brigadas-calendario-${monthKey(state.calendarDate)}.png`;
+    const file = new File([blob], filename, { type: 'image/png' });
+    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      await navigator.share({ title: 'Calendario de brigadas', text: 'Calendario de encuentros de brigadas', files: [file] });
+      showAppToast('Calendario compartido.', 'success');
+    } else {
+      downloadBlob(blob, filename, 'image/png');
+      showAppToast('El dispositivo no permite compartir directamente; se descargó la imagen.', 'warning');
+    }
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      console.error(error);
+      showAppToast('No se pudo compartir la imagen; probá descargarla.', 'warning');
+    }
+  } finally {
+    setButtonLoading('shareCalendarButton', false);
+  }
+}
+
+function getAvailableMetricYears() {
+  const years = new Set([new Date().getFullYear()]);
+  ['ENCUENTROS', 'ASISTENCIAS', 'CHECK_EQUIPAMIENTO'].forEach((sheetName) => {
+    (state.sheets[sheetName] || []).forEach((item) => {
+      const date = parseDate(normalizeRow(item).fecha);
+      if (date) years.add(date.getFullYear());
+    });
+  });
+  return Array.from(years).sort((a, b) => b - a);
+}
+
+function getSelectedAdminPeriod() {
+  const type = document.getElementById('adminPeriodType')?.value || state.adminPeriodType || 'month';
+  const year = document.getElementById('adminYear')?.value || state.adminYear || String(new Date().getFullYear());
+  const month = document.getElementById('adminMonth')?.value || state.adminMonth.slice(5, 7) || '01';
+  if (type === 'year') {
+    return { type, year, month, from: `${year}-01-01`, to: `${year}-12-31`, expectedMonths: 12, label: year };
+  }
+  const lastDay = new Date(Number(year), Number(month), 0).getDate();
+  const label = new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  return { type, year, month, from: `${year}-${month}-01`, to: `${year}-${month}-${lastDay}`, expectedMonths: 1, label };
+}
+
+function renderAttendanceByPerson(from, to) {
+  const brigadeFilter = document.getElementById('adminBrigadeFilter').value;
+  const brigades = getBrigadasActivas().filter((brigade) => !brigadeFilter || brigade.id_brigada === brigadeFilter);
+  const rows = brigades.flatMap((brigade) => calcularAsistenciaPorPersona(brigade, from, to));
+  document.getElementById('attendanceByPersonTable').innerHTML = rows.length
+    ? rows.map((row) => `
+      <tr>
+        <td>${escapeHtml(row.brigada)}</td>
+        <td>${escapeHtml(row.nombre)}</td>
+        <td>${row.presentes}</td>
+        <td>${row.ausentes}</td>
+        <td>${row.justificados}</td>
+        <td>${row.total ? `${row.porcentaje}%` : 'Sin registros'}</td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="6">Todavía no hay integrantes o asistencias registradas para este período.</td></tr>';
+}
+
+function calcularAsistenciaPorPersona(brigade, from, to) {
+  const fromDate = parseDate(from);
+  const toDate = parseDate(to);
+  const assistanceIds = new Set((state.sheets.ASISTENCIAS || [])
+    .map(normalizeRow)
+    .filter((row) => {
+      const date = parseDate(row.fecha);
+      return row.id_brigada === brigade.id_brigada && date && date >= fromDate && date <= toDate;
+    })
+    .map((row) => row.id_asistencia)
+    .filter(Boolean));
+  const totals = new Map();
+  getIntegrantesBrigada(brigade.id_brigada).forEach((person) => {
+    const nombre = [person.apellido, person.nombre].filter(Boolean).join(', ') || person.bombero || person.legajo || 'Sin nombre';
+    totals.set(person.legajo || nombre, { brigada: brigade.nombre_brigada, nombre, presentes: 0, ausentes: 0, justificados: 0 });
+  });
+  (state.sheets.DETALLE_ASISTENCIAS || []).map(normalizeRow).filter((row) => assistanceIds.has(row.id_asistencia)).forEach((row) => {
+    const nombre = [row.apellido, row.nombre].filter(Boolean).join(', ') || row.bombero || row.legajo || 'Sin nombre';
+    const key = row.legajo || nombre;
+    const total = totals.get(key) || { brigada: brigade.nombre_brigada, nombre, presentes: 0, ausentes: 0, justificados: 0 };
+    const status = normalizeState(row.estado_asistencia);
+    if (status === 'p') total.presentes += 1;
+    if (status === 'a') total.ausentes += 1;
+    if (status === 'just.') total.justificados += 1;
+    totals.set(key, total);
+  });
+  return Array.from(totals.values()).map((row) => {
+    const total = row.presentes + row.ausentes + row.justificados;
+    return { ...row, total, porcentaje: total ? Math.round((row.presentes / total) * 100) : 0 };
+  }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 
 function setBrigadeActionStatus(message, type = 'info') {
@@ -1231,7 +1440,23 @@ async function generarPDFAsistencia(includeLoaded) {
     alert('No se pudo cargar jsPDF.');
     return;
   }
+  const trainingTopic = document.getElementById('attendanceTopic').value.trim();
   const generalNotes = document.getElementById('attendanceNotes').value.trim();
+  const attendanceDetails = members.map((person, index) => ({
+    legajo: person.legajo || '',
+    apellido: person.apellido || '',
+    nombre: person.nombre || '',
+    bombero: person.bombero || '',
+    jerarquia: person.jerarquia || '',
+    estado_asistencia: includeLoaded ? document.querySelector(`input[name="att-${index}"]:checked`)?.value || '' : '',
+    observacion_individual: includeLoaded ? document.querySelector(`[data-observation="${index}"]`)?.value || '' : '',
+  }));
+  if (includeLoaded && attendanceDetails.some((detail) => !detail.estado_asistencia)) {
+    alert('Marcá Presente, Ausente o Justificado para todos los integrantes antes de guardar.');
+    return;
+  }
+  const attendanceId = window.crypto?.randomUUID ? `asis_${window.crypto.randomUUID()}` : `asis_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const attendanceDate = formatDateInput(new Date());
   setButtonLoading('saveAttendanceButton', true, 'Generando PDF...');
   setBrigadeActionStatus('Generando PDF de asistencia...');
   try {
@@ -1249,17 +1474,22 @@ async function generarPDFAsistencia(includeLoaded) {
     doc.text(`Brigada ${brigade.nombre_brigada}`, 42, 20);
     doc.setFontSize(10);
     doc.text(new Date().toLocaleDateString('es-AR'), 170, 20);
+    const topicLines = doc.splitTextToSize(trainingTopic || 'Sin tema informado', 135);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tema de la capacitación:', 14, 34);
     doc.setFont('helvetica', 'normal');
-    doc.text('Integrantes de la Brigada', 14, 34);
+    doc.text(topicLines, 58, 34);
+    const membersTitleY = Math.max(43, 39 + (topicLines.length - 1) * 5);
+    doc.text('Integrantes de la Brigada', 14, membersTitleY);
     const body = members.map((person, index) => {
       const name = [person.apellido, person.nombre].filter(Boolean).join(', ') || person.bombero || 'Sin nombre';
-      const selected = includeLoaded ? document.querySelector(`input[name="att-${index}"]:checked`)?.value : '';
-      const obs = includeLoaded ? document.querySelector(`[data-observation="${index}"]`)?.value || '' : '';
+      const selected = attendanceDetails[index].estado_asistencia;
+      const obs = attendanceDetails[index].observacion_individual;
       return [name, selected === 'P' ? 'X' : '', selected === 'A' ? 'X' : '', selected === 'Just.' ? 'X' : '', obs];
     });
     if (doc.autoTable) {
       doc.autoTable({
-        startY: 40,
+        startY: membersTitleY + 5,
         head: [['Integrante', 'P', 'A', 'Just.', 'Obs.']],
         body,
         styles: { fontSize: 9, cellPadding: 2.3 },
@@ -1280,7 +1510,7 @@ async function generarPDFAsistencia(includeLoaded) {
       y = 20;
     }
     doc.setFont('helvetica', 'bold');
-    doc.text('Observaciones / temática de la capacitación:', 14, y);
+    doc.text('Observaciones:', 14, y);
     doc.setFont('helvetica', 'normal');
     const notesLines = generalNotes ? doc.splitTextToSize(generalNotes, 182) : [''];
     doc.text(notesLines, 14, y + 6);
@@ -1307,7 +1537,18 @@ async function generarPDFAsistencia(includeLoaded) {
       id_brigada: brigade.id_brigada,
       brigada: brigade.nombre_brigada,
       tipo_reporte: 'asistencia',
+      tema: trainingTopic,
       observaciones: generalNotes,
+    });
+    await registrarAsistencia({
+      id_asistencia: attendanceId,
+      fecha: attendanceDate,
+      mes_periodo: monthKey(attendanceDate),
+      id_brigada: brigade.id_brigada,
+      brigada: brigade.nombre_brigada,
+      tipo_actividad: trainingTopic || 'Capacitación',
+      observaciones_generales: generalNotes,
+      detalles: attendanceDetails,
     });
     const shared = await downloadAndSharePdf(doc, filename, `Asistencia ${brigade.nombre_brigada}`);
     setBrigadeActionStatus(shared
@@ -1323,6 +1564,27 @@ async function generarPDFAsistencia(includeLoaded) {
 
 async function guardarReporteDrive(payload) {
   await postToAppsScript({ action: 'guardar_reporte', ...payload });
+}
+
+async function registrarAsistencia(payload) {
+  await postToAppsScript({ action: 'registrar_asistencia', ...payload, detalles: JSON.stringify(payload.detalles || []) });
+  const header = {
+    id_asistencia: payload.id_asistencia,
+    fecha: payload.fecha,
+    mes_periodo: payload.mes_periodo,
+    id_brigada: payload.id_brigada,
+    brigada: payload.brigada,
+    tipo_actividad: payload.tipo_actividad,
+    observaciones_generales: payload.observaciones_generales,
+    estado_registro: 'Cerrado',
+  };
+  state.sheets.ASISTENCIAS = [...(state.sheets.ASISTENCIAS || []), header];
+  state.sheets.DETALLE_ASISTENCIAS = [
+    ...(state.sheets.DETALLE_ASISTENCIAS || []),
+    ...(payload.detalles || []).map((detail) => ({ ...detail, id_asistencia: payload.id_asistencia })),
+  ];
+  renderAdmin();
+  setTimeout(loadGoogleSheet, 2500);
 }
 
 async function generarPDFCheckEquipamiento(uploadToDrive = true) {
@@ -1446,10 +1708,11 @@ function fileToDataUrl(file) {
 }
 
 function exportAdminCsv() {
-  const rows = calcularResumenAdmin(state.adminMonth).filter(filterAdminRow);
+  const period = getSelectedAdminPeriod();
+  const rows = calcularResumenAdminRango(period.from, period.to, period.expectedMonths).filter(filterAdminRow);
   const headers = Object.keys(rows[0] || { mes_periodo: '', id_brigada: '', brigada: '' });
   const csv = [headers.join(','), ...rows.map((row) => headers.map((key) => csvCell(row[key])).join(','))].join('\n');
-  downloadBlob(csv, `admin-brigadas-${state.adminMonth}.csv`, 'text/csv;charset=utf-8');
+  downloadBlob(csv, `admin-brigadas-${period.type === 'year' ? period.year : `${period.year}-${period.month}`}.csv`, 'text/csv;charset=utf-8');
 }
 
 function exportAdminPdf() {
@@ -1477,16 +1740,20 @@ async function descargarLogoBrigada() {
 
 function calculateKpis(summary) {
   const active = getBrigadasActivas().length;
-  const covered = summary.filter((row) => row.cumple_encuentro_mensual).length;
+  const covered = summary.reduce((sum, row) => sum + row.meses_cubiertos, 0);
+  const expected = summary.reduce((sum, row) => sum + row.meses_esperados, 0);
+  const realized = summary.reduce((sum, row) => sum + row.encuentros_realizados, 0);
   const attendanceRows = summary.filter((row) => row.total_convocados > 0);
   const avgAttendance = attendanceRows.length ? Math.round(attendanceRows.reduce((sum, row) => sum + row.porcentaje_asistencia, 0) / attendanceRows.length) : 0;
   return {
     active,
     covered,
-    missing: active - covered,
-    meetingCompliance: active ? Math.round((covered / active) * 100) : 0,
+    expected,
+    realized,
+    missing: Math.max(expected - covered, 0),
+    meetingCompliance: expected ? Math.round((covered / expected) * 100) : 0,
     avgAttendance,
-    generalIndex: Math.round((((active ? covered / active : 0) * 100) + avgAttendance) / 2),
+    generalIndex: Math.round((((expected ? covered / expected : 0) * 100) + avgAttendance) / 2),
     pendingNeeds: summary.reduce((sum, row) => sum + row.necesidades_pendientes, 0),
     highNeeds: summary.reduce((sum, row) => sum + row.necesidades_alta_prioridad, 0),
     criticalChecks: summary.reduce((sum, row) => sum + row.checks_criticos, 0),
@@ -1628,7 +1895,7 @@ function csvCell(value) {
 }
 
 function downloadBlob(content, filename, type) {
-  const blob = new Blob([content], { type });
+  const blob = content instanceof Blob ? content : new Blob([content], { type });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = filename;
