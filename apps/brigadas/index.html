@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SBVP | Brigadas</title>
-    <link rel="stylesheet" href="styles.css?v=brigadas-asistencia-tema-18">
+    <link rel="stylesheet" href="styles.css?v=brigadas-calendario-navegable-19">
     <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script defer src="app.js?v=brigadas-asistencia-tema-18"></script>
+    <script defer src="app.js?v=brigadas-calendario-navegable-19"></script>
   </head>
   <body>
     <header class="topbar">
@@ -149,7 +149,11 @@
           <div id="homeCalendarExport" class="calendar-export mini-calendar">
             <div class="calendar-title">
               <span>Brigadas</span>
-              <strong id="homeCalendarTitle"></strong>
+              <div class="calendar-title-navigation">
+                <button id="homeCalendarPrevInner" type="button" aria-label="Mes anterior">←</button>
+                <strong id="homeCalendarTitle"></strong>
+                <button id="homeCalendarNextInner" type="button" aria-label="Mes siguiente">→</button>
+              </div>
             </div>
             <div id="homeCalendarGrid" class="calendar-grid poster-grid"></div>
             <div id="homeMissingMeetings" class="missing-box"></div>
@@ -172,7 +176,11 @@
           <div id="calendarExport" class="calendar-export">
             <div class="calendar-title">
               <span>Brigadas</span>
-              <strong id="calendarTitle"></strong>
+              <div class="calendar-title-navigation">
+                <button id="calendarPrevInner" type="button" aria-label="Mes anterior">←</button>
+                <strong id="calendarTitle"></strong>
+                <button id="calendarNextInner" type="button" aria-label="Mes siguiente">→</button>
+              </div>
             </div>
             <div id="calendarGrid" class="calendar-grid"></div>
             <div class="legend">

@@ -701,6 +701,28 @@ td input[type="radio"] {
 .calendar-title span { font-size: 30px; font-weight: 800; color: #fff; text-transform: uppercase; }
 .calendar-title strong { font-size: 20px; }
 
+.calendar-title-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-title-navigation button {
+  width: 38px;
+  min-width: 38px;
+  min-height: 34px;
+  padding: 4px;
+  border-color: rgba(255,255,255,.45);
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.calendar-title-navigation button:hover {
+  background: rgba(255,255,255,.24);
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(86px, 1fr));
@@ -1187,6 +1209,10 @@ td input[type="radio"] {
 
 .calendar-export.export-mode .calendar-grid {
   grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-export.export-mode .calendar-title-navigation button {
+  display: none;
 }
 
 .calendar-export.export-mode .day-cell {
