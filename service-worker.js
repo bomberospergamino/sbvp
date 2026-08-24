@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v27-calendario-rango-visible';
+const CACHE_NAME = 'sbvp-home-v28-rescate-con-cuerdas';
 const APP_SHELL = [
   './',
   './index.html',

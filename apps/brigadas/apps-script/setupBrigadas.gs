@@ -8,7 +8,7 @@ const BRIGADAS_CONFIG = [
   ['buceo', 'Buceo', 'buceo', 'buceo_logo.jpeg', '#003566', 'SI', 2, 1, '', '', ''],
   ['k9', 'K9', 'k9', 'k9_logo.jpeg', '#D00000', 'SI', 3, 1, '', '', ''],
   ['mat_pel', 'Mat Pel', 'mat_pel', 'matpel_logo.jpeg', '#70E000', 'SI', 4, 1, '', 'General|https://drive.google.com/drive/folders/1Jn3Zg-V2umhoep5QKUiO3SPoiXm3VZUQ?usp=sharing\nIdentificacion|https://drive.google.com/drive/folders/1RLG5BTS_p_zFKUS3ye8ZhytzGvplL_QW?usp=drive_link\nMaterial complementario|https://drive.google.com/drive/folders/17g4oBDcsGCvQXkPuojPtZvTVVnx-7ECp?usp=drive_link', ''],
-  ['altura', 'Altura', 'altura', 'altura_logo.jpeg', '#B5179E', 'SI', 5, 1, '', '', ''],
+  ['altura', 'Rescate con cuerdas', 'altura', 'altura_logo.jpeg', '#B5179E', 'SI', 5, 1, '', '', ''],
   ['socorrismo', 'Socorrismo', 'socorrismo', 'socorrismo_logo.jpeg', '#E85D04', 'SI', 6, 1, '', '', ''],
   ['brec', 'BREC', 'brec', 'brec_logo.jpeg', '#6C584C', 'SI', 7, 1, '', '', ''],
 ];
@@ -591,8 +591,9 @@ function getBrigadeFolder_(root, brigadeName, createIfMissing) {
     'k9': 'BRIGADA K9',
     'mat pel': 'BRIGADA MAT PEL',
     'rescate acuatico': 'BRIGADA RESCATE ACUÁTICO',
-    'altura': 'BRIGADA RESCATE EN ALTURA',
-    'rescate en altura': 'BRIGADA RESCATE EN ALTURA',
+    'altura': 'BRIGADA RESCATE CON CUERDAS',
+    'rescate en altura': 'BRIGADA RESCATE CON CUERDAS',
+    'rescate con cuerdas': 'BRIGADA RESCATE CON CUERDAS',
     'socorrismo': 'BRIGADA SOCORRISMO',
   };
   const folderName = knownNames[normalized] || ('BRIGADA ' + String(brigadeName).toUpperCase());

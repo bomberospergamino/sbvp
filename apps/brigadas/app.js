@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-calendario-rango-visible-22';
+const APP_VERSION = 'brigadas-rescate-con-cuerdas-23';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -18,12 +18,13 @@ const GOOGLE_SHEET_NAMES = [
   'PARAMETROS',
 ];
 const VALID_MEETING_STATES = new Set(['programado', 'realizado', 'reprogramado']);
+const ROPE_RESCUE_NAME = 'Rescate con cuerdas';
 const BRIGADES_FALLBACK = [
   { id_brigada: 'rescate_acuatico', nombre_brigada: 'Rescate acuatico', columna_personal: 'rescate_acuatico', logo_file: 'rescateacuatico_logo.jpeg', color: '#0077B6', activa: 'SI', orden: 1 },
   { id_brigada: 'buceo', nombre_brigada: 'Buceo', columna_personal: 'buceo', logo_file: 'buceo_logo.jpeg', color: '#003566', activa: 'SI', orden: 2 },
   { id_brigada: 'k9', nombre_brigada: 'K9', columna_personal: 'k9', logo_file: 'k9_logo.jpeg', color: '#D00000', activa: 'SI', orden: 3 },
   { id_brigada: 'mat_pel', nombre_brigada: 'Mat Pel', columna_personal: 'mat_pel', logo_file: 'matpel_logo.jpeg', color: '#70E000', activa: 'SI', orden: 4 },
-  { id_brigada: 'altura', nombre_brigada: 'Altura', columna_personal: 'altura', logo_file: 'altura_logo.jpeg', color: '#B5179E', activa: 'SI', orden: 5 },
+  { id_brigada: 'altura', nombre_brigada: ROPE_RESCUE_NAME, columna_personal: 'altura', logo_file: 'altura_logo.jpeg', color: '#B5179E', activa: 'SI', orden: 5 },
   { id_brigada: 'socorrismo', nombre_brigada: 'Socorrismo', columna_personal: 'socorrismo', logo_file: 'socorrismo_logo.jpeg', color: '#E85D04', activa: 'SI', orden: 6 },
   { id_brigada: 'brec', nombre_brigada: 'BREC', columna_personal: 'brec', logo_file: 'brec_logo.jpeg', color: '#6C584C', activa: 'SI', orden: 7 },
 ];
@@ -636,7 +637,7 @@ function renderCalendarInto({ gridId, titleId, counterId, missingId, selectedMon
       pill.className = `event-pill ${normalizeState(meeting.estado)}`;
       const brigade = getBrigadasActivas().find((item) => item.id_brigada === meeting.id_brigada);
       const hour = meeting.hora_inicio || '';
-      const brigadeLabel = meeting.brigada || brigade?.nombre_brigada || meeting.id_brigada || 'Brigada';
+      const brigadeLabel = displayBrigadeName(meeting.id_brigada, meeting.brigada || brigade?.nombre_brigada);
       const topic = meeting.tema || 'Encuentro mensual';
       pill.title = `${brigadeLabel} · ${hour} · ${topic}`;
       pill.innerHTML = `
@@ -742,7 +743,7 @@ function renderAdminEvents(from, to) {
     <tr>
       <td>${escapeHtml(formatDateInput(event.fecha))}</td>
       <td>${escapeHtml(event.hora_inicio || '')}</td>
-      <td>${escapeHtml(event.brigada || brigadeName(event.id_brigada))}</td>
+      <td>${escapeHtml(displayBrigadeName(event.id_brigada, event.brigada))}</td>
       <td>${escapeHtml(event.estado || '')}</td>
       <td>${escapeHtml(event.tema || '')}</td>
       <td>
@@ -1776,6 +1777,7 @@ function calendarWeekdays(date) {
 function normalizeBrigade(row) {
   const normalized = normalizeRow(row);
   if (normalized.id_brigada === 'socorrismo') normalized.columna_personal = 'socorrismo';
+  if (normalized.id_brigada === 'altura') normalized.nombre_brigada = ROPE_RESCUE_NAME;
   return normalized;
 }
 
@@ -1849,6 +1851,14 @@ function sameDay(a, b) {
 
 function brigadeName(id) {
   return getBrigadasActivas().find((b) => b.id_brigada === id)?.nombre_brigada || id || 'Brigada';
+}
+
+function displayBrigadeName(id, value) {
+  const normalized = normalizeState(value);
+  if (id === 'altura' || ['altura', 'rescate en altura', 'brigada rescate en altura', 'brigada de rescate en altura', 'rescate con cuerdas'].includes(normalized)) {
+    return ROPE_RESCUE_NAME;
+  }
+  return value || brigadeName(id);
 }
 
 function logoPath(brigade) {

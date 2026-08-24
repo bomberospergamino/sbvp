@@ -31,7 +31,7 @@ BRIGADAS = [
         "Material complementario|https://drive.google.com/drive/folders/17g4oBDcsGCvQXkPuojPtZvTVVnx-7ECp?usp=drive_link",
         "",
     ],
-    ["altura", "Altura", "altura", "altura_logo.jpeg", "#B5179E", "SI", 5, 1, "", "", ""],
+    ["altura", "Rescate con cuerdas", "altura", "altura_logo.jpeg", "#B5179E", "SI", 5, 1, "", "", ""],
     ["socorrismo", "Socorrismo", "socorrismo", "socorrismo_logo.jpeg", "#E85D04", "SI", 6, 1, "", "", ""],
     ["brec", "BREC", "brec", "brec_logo.jpeg", "#6C584C", "SI", 7, 1, "", "", ""],
 ]
@@ -86,6 +86,7 @@ LEGACY_HEADERS = {
     "k9": "k9",
     "mat pel": "mat_pel",
     "altura": "altura",
+    "rescate con cuerdas": "altura",
     "socorrismo": "socorrismo",
     "brec": "brec",
 }
