@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v26-agenda-activa';
+const CACHE_NAME = 'sbvp-home-v27-calendario-rango-visible';
 const APP_SHELL = [
   './',
   './index.html',

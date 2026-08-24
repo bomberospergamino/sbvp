@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-logo-rescate-acuatico-21';
+const APP_VERSION = 'brigadas-calendario-rango-visible-22';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -581,7 +581,8 @@ function getBibliographyItems(brigade) {
 
 function renderCalendar() {
   const selectedMonth = monthKey(state.calendarDate);
-  const meetings = getEncuentrosMes(selectedMonth);
+  const visibleDates = calendarWeekdays(state.calendarDate);
+  const meetings = getEncuentrosRango(visibleDates[0], visibleDates[visibleDates.length - 1]);
   const missing = getBrigadasSinEncuentro(selectedMonth);
   renderCalendarInto({
     gridId: 'calendarGrid',
@@ -589,6 +590,7 @@ function renderCalendar() {
     counterId: 'calendarCounter',
     missingId: 'missingMeetings',
     selectedMonth,
+    visibleDates,
     meetings,
     missing,
   });
@@ -598,6 +600,7 @@ function renderCalendar() {
     counterId: 'homeCalendarCounter',
     missingId: 'homeMissingMeetings',
     selectedMonth,
+    visibleDates,
     meetings,
     missing,
   });
@@ -605,7 +608,7 @@ function renderCalendar() {
   document.getElementById('homeCoveredCount').textContent = `${covered} / ${getBrigadasActivas().length}`;
 }
 
-function renderCalendarInto({ gridId, titleId, counterId, missingId, selectedMonth, meetings, missing }) {
+function renderCalendarInto({ gridId, titleId, counterId, missingId, selectedMonth, visibleDates, meetings, missing }) {
   const grid = document.getElementById(gridId);
   grid.innerHTML = '';
   [
@@ -623,7 +626,7 @@ function renderCalendarInto({ gridId, titleId, counterId, missingId, selectedMon
     head.textContent = day;
     grid.appendChild(head);
   });
-  calendarWeekdays(state.calendarDate).forEach((date) => {
+  visibleDates.forEach((date) => {
     const cell = document.createElement('div');
     const isCurrentMonth = monthKey(date) === selectedMonth;
     cell.className = `day-cell${isCurrentMonth ? '' : ' outside'}`;
