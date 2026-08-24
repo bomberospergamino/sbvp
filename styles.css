@@ -55,9 +55,6 @@ body{
   cursor:pointer;
   white-space:nowrap;
 }
-.topbar-text .topbar-link{
-  margin:0 0 10px;
-}
 .topbar-link.location-locked{background:rgba(0,0,0,.2)}
 .topbar-link.location-checking{opacity:.78;cursor:wait}
 .topbar-link:hover,.topbar-link:focus-visible{

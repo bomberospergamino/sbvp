@@ -60,7 +60,7 @@ function resetFicheroAccess(){
   ficheroAccess.disabled = false;
   ficheroAccess.classList.remove('location-checking');
   ficheroAccess.querySelector('span:first-child').textContent = '🔒';
-  ficheroAccess.querySelector('span:last-child').textContent = 'Fichero · verificar ubicación';
+  ficheroAccess.querySelector('span:last-child').textContent = 'Fichero';
 }
 
 function distanceInMeters(lat1, lon1, lat2, lon2){
