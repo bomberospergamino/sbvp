@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v28-rescate-con-cuerdas';
+const CACHE_NAME = 'sbvp-home-v29-encuentros-generales';
 const APP_SHELL = [
   './',
   './index.html',

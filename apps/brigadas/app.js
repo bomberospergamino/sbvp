@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-rescate-con-cuerdas-23';
+const APP_VERSION = 'brigadas-encuentros-generales-24';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -19,6 +19,12 @@ const GOOGLE_SHEET_NAMES = [
 ];
 const VALID_MEETING_STATES = new Set(['programado', 'realizado', 'reprogramado']);
 const ROPE_RESCUE_NAME = 'Rescate con cuerdas';
+const GENERAL_MEETING_GROUP = {
+  id_brigada: 'general',
+  nombre_brigada: 'General · Todo el cuerpo activo',
+  logo_file: 'logo-sbvp.png',
+  color: '#df3438',
+};
 const BRIGADES_FALLBACK = [
   { id_brigada: 'rescate_acuatico', nombre_brigada: 'Rescate acuatico', columna_personal: 'rescate_acuatico', logo_file: 'rescateacuatico_logo.jpeg', color: '#0077B6', activa: 'SI', orden: 1 },
   { id_brigada: 'buceo', nombre_brigada: 'Buceo', columna_personal: 'buceo', logo_file: 'buceo_logo.jpeg', color: '#003566', activa: 'SI', orden: 2 },
@@ -635,10 +641,10 @@ function renderCalendarInto({ gridId, titleId, counterId, missingId, selectedMon
     meetings.filter((meeting) => sameDay(parseDate(meeting.fecha), date)).forEach((meeting) => {
       const pill = document.createElement('span');
       pill.className = `event-pill ${normalizeState(meeting.estado)}`;
-      const brigade = getBrigadasActivas().find((item) => item.id_brigada === meeting.id_brigada);
+      const brigade = getMeetingGroup(meeting.id_brigada);
       const hour = meeting.hora_inicio || '';
       const brigadeLabel = displayBrigadeName(meeting.id_brigada, meeting.brigada || brigade?.nombre_brigada);
-      const topic = meeting.tema || 'Encuentro mensual';
+      const topic = meeting.tema || (meeting.id_brigada === GENERAL_MEETING_GROUP.id_brigada ? 'Encuentro general' : 'Encuentro mensual');
       pill.title = `${brigadeLabel} · ${hour} · ${topic}`;
       pill.innerHTML = `
         <img src="${logoPath(brigade || {})}" alt="">
@@ -688,6 +694,7 @@ function setupScheduleOptions() {
   if (!select) return;
   const current = select.value || state.selectedBrigade;
   select.innerHTML = '';
+  select.add(new Option(GENERAL_MEETING_GROUP.nombre_brigada, GENERAL_MEETING_GROUP.id_brigada));
   getBrigadasActivas().forEach((item) => select.add(new Option(item.nombre_brigada, item.id_brigada)));
   select.value = current;
 }
@@ -778,7 +785,8 @@ function createMeetingId() {
 async function handleScheduleSubmit(event) {
   event.preventDefault();
   const submitButton = document.getElementById('scheduleSubmit');
-  const brigade = getBrigadasActivas().find((item) => item.id_brigada === document.getElementById('scheduleBrigade').value);
+  const brigade = getMeetingGroup(document.getElementById('scheduleBrigade').value);
+  if (!brigade) return;
   const payload = {
     action: state.editingEventId ? 'editar_encuentro' : 'programar_encuentro',
     id_encuentro: state.editingEventId || createMeetingId(),
@@ -786,7 +794,7 @@ async function handleScheduleSubmit(event) {
     mes_periodo: monthKey(document.getElementById('scheduleDate').value),
     id_brigada: brigade.id_brigada,
     brigada: brigade.nombre_brigada,
-    tipo_encuentro: 'Encuentro mensual',
+    tipo_encuentro: brigade.id_brigada === GENERAL_MEETING_GROUP.id_brigada ? 'Encuentro general' : 'Encuentro mensual',
     tema: document.getElementById('scheduleTopic').value,
     responsable: document.getElementById('scheduleResponsible').value,
     lugar: '',
@@ -1850,7 +1858,12 @@ function sameDay(a, b) {
 }
 
 function brigadeName(id) {
-  return getBrigadasActivas().find((b) => b.id_brigada === id)?.nombre_brigada || id || 'Brigada';
+  return getMeetingGroup(id)?.nombre_brigada || id || 'Brigada';
+}
+
+function getMeetingGroup(id) {
+  if (id === GENERAL_MEETING_GROUP.id_brigada) return GENERAL_MEETING_GROUP;
+  return getBrigadasActivas().find((brigade) => brigade.id_brigada === id);
 }
 
 function displayBrigadeName(id, value) {
