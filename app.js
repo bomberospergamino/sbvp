@@ -3,7 +3,6 @@ const FICHERO_URL = 'apps/fichero/';
 const CUARTEL_LOCATION = { latitude: -33.8967915, longitude: -60.5823517 };
 const FICHERO_RADIUS_METERS = 200;
 const ANNOUNCEMENTS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxI1YYEKCwVon5SwCxRxrmUg5ZYJ3JGKqlP0G53Ubr4gRshs-IUYA7Z_XIO0HDUhn7xew/exec';
-const ANNOUNCEMENTS_DAYS = 14;
 
 const toast = document.getElementById('toast');
 const installBanner = document.getElementById('installBanner');
@@ -76,20 +75,13 @@ function distanceInMeters(lat1, lon1, lat2, lon2){
 
 async function loadAnnouncements(){
   if(!announcementsPanel) return;
-  const dates = Array.from({length:ANNOUNCEMENTS_DAYS + 1}, (_, offset) => dateInArgentina(offset));
+  const today = dateInArgentina();
   try{
-    const results = await Promise.all(dates.map(async (date) => {
-      try{
-        const url = `${ANNOUNCEMENTS_ENDPOINT}?action=calendario&date=${encodeURIComponent(date)}`;
-        const response = await fetch(url, {cache:'no-store'});
-        if(!response.ok) return [];
-        const data = await response.json();
-        return (data.items || []).map((item) => ({...item, date}));
-      }catch(error){
-        return [];
-      }
-    }));
-    renderAnnouncements(results.flat());
+    const url = `${ANNOUNCEMENTS_ENDPOINT}?action=calendario&date=${encodeURIComponent(today)}`;
+    const response = await fetch(url, {cache:'no-store'});
+    if(!response.ok) throw new Error('No se pudieron cargar los anuncios');
+    const data = await response.json();
+    renderAnnouncements(data.items || []);
   }catch(error){
     announcementsPanel.innerHTML = '<p class="announcements-status">No se pudieron cargar los recordatorios en este momento.</p>';
   }
@@ -98,7 +90,7 @@ async function loadAnnouncements(){
 function renderAnnouncements(items){
   announcementsPanel.innerHTML = '';
   if(!items.length){
-    announcementsPanel.innerHTML = '<p class="announcements-status">No hay recordatorios para hoy ni para los próximos 14 días.</p>';
+    announcementsPanel.innerHTML = '<p class="announcements-status">No hay recordatorios para hoy.</p>';
     return;
   }
   items.forEach((item) => {
@@ -109,11 +101,11 @@ function renderAnnouncements(items){
     icon.setAttribute('aria-hidden', 'true');
     icon.textContent = announcementIcon(item.tipo);
     const content = document.createElement('div');
-    const date = document.createElement('strong');
-    date.textContent = announcementDateLabel(item.date);
+    const type = document.createElement('strong');
+    type.textContent = item.tipo || 'Recordatorio';
     const message = document.createElement('span');
-    message.textContent = item.mensaje || item.tipo || 'Recordatorio';
-    content.append(date, message);
+    message.textContent = announcementMessage(item);
+    content.append(type, message);
     card.append(icon, content);
     announcementsPanel.appendChild(card);
   });
@@ -127,20 +119,24 @@ function announcementIcon(type){
   return '📌';
 }
 
+function announcementMessage(item){
+  const type = String(item.tipo || '').trim().toLowerCase();
+  const isBirthday = type.includes('cumple');
+  const name = item.nombre || item.persona || item.felicitado || item.mensaje || 'Recordatorio';
+  const years = item.anios ?? item.años ?? item.cantidad_anios ?? item.cantidad_anos ?? item.antiguedad ?? '';
+  if(isBirthday || years === '' || years === null) return String(name);
+
+  const yearsLabel = `${years} ${Number(years) === 1 ? 'año' : 'años'}`;
+  return String(name).toLowerCase().includes(String(yearsLabel).toLowerCase())
+    ? String(name)
+    : `${name} · ${yearsLabel}`;
+}
+
 function dateInArgentina(offsetDays = 0){
   const date = new Date(Date.now() + offsetDays * 86400000);
   return new Intl.DateTimeFormat('en-CA', {
     timeZone:'America/Argentina/Buenos_Aires', year:'numeric', month:'2-digit', day:'2-digit'
   }).format(date);
-}
-
-function announcementDateLabel(value){
-  const today = dateInArgentina(0);
-  const tomorrow = dateInArgentina(1);
-  if(value === today) return 'Hoy';
-  if(value === tomorrow) return 'Mañana';
-  const [year, month, day] = value.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long'});
 }
 
 async function loadLastCodeUpdate(){
