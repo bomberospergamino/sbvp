@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v23-hidrantes-carga-rapida';
+const CACHE_NAME = 'sbvp-home-v24-buscador-hidrantes';
 const APP_SHELL = [
   './',
   './index.html',

@@ -937,7 +937,12 @@ function createEmptyRecord() {
 }
 
 function getBotiquinVehicles() {
-  return state.vehicles.filter(vehicle => !BOTIQUIN_EXCLUDED_VEHICLES.includes(vehicle));
+  return state.vehicles.filter(vehicle => !isBotiquinExcludedVehicle(vehicle));
+}
+
+function isBotiquinExcludedVehicle(vehicle) {
+  const normalized = String(vehicle || '').toUpperCase();
+  return BOTIQUIN_EXCLUDED_VEHICLES.includes(normalized.trim()) || (/MOVIL/.test(normalized) && (normalized.match(/\d+/) || [])[0] === '3');
 }
 
 function validateRecordForCheck(record, vehicle, group) {
