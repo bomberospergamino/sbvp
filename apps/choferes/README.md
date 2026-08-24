@@ -43,7 +43,7 @@ Lunes:
 ## PDFs
 
 - Cada check de movil se guarda en la subcarpeta del movil dentro de la carpeta raiz configurada en Drive.
-- El control de botiquines excluye al MOVIL 3 y genera un PDF en la subcarpeta `BOTIQUINES`.
+- El control de botiquines excluye al MOVIL 3 y genera un PDF en la carpeta existente `Choferes - Botiquines`: `https://drive.google.com/drive/folders/1-jPHZWz1tmrx4y36sJf1fJcLW6_Fc6qw`.
 - El boton `ARCHIVO` abre la carpeta raiz con todos los checks.
 - Para activar el guardado de botiquines hay que copiar la version actualizada de `Code.gs` al proyecto de Google Apps Script y crear un nuevo despliegue de la aplicacion web.
 

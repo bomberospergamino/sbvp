@@ -10,6 +10,7 @@ const $=id=>document.getElementById(id),editor=$('editorDialog'),details=$('deta
 $('addBtn').addEventListener('click',toggleAdding);$('emptyAddBtn').addEventListener('click',toggleAdding);
 $('fitBtn').addEventListener('click',fitAll);$('locateBtn').addEventListener('click',locateUser);
 $('changeLocationBtn').addEventListener('click',toggleOriginSelection);$('clearOriginBtn').addEventListener('click',clearOrigin);
+$('locationSearchForm').addEventListener('submit',searchLocation);
 $('refreshBtn').addEventListener('click',()=>loadHydrants(true));$('searchInput').addEventListener('input',renderList);
 $('deleteBtn').addEventListener('click',deleteCurrent);
 $('closeEditorBtn').addEventListener('click',()=>editor.close());$('cancelEditorBtn').addEventListener('click',()=>editor.close());
@@ -57,6 +58,28 @@ function stopModes(){adding=false;selectingOrigin=false;$('map').style.cursor=''
 function setOrigin(lat,lng,label){origin={lat,lng,label};if(originMarker)originMarker.remove();originMarker=L.marker([lat,lng],{icon:L.divIcon({className:'user-origin',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(map).bindTooltip(label).openTooltip();$('originSummary').classList.remove('hidden');$('originText').textContent=label;renderList();renderMarkers();}
 function clearOrigin(){origin=null;if(originMarker){originMarker.remove();originMarker=null}$('originSummary').classList.add('hidden');renderList();renderMarkers()}
 function locateUser(){if(!navigator.geolocation)return showToast('Este dispositivo no ofrece ubicación.');showToast('Buscando tu ubicación…');navigator.geolocation.getCurrentPosition(({coords})=>{setOrigin(coords.latitude,coords.longitude,'Mi ubicación actual');map.flyTo([coords.latitude,coords.longitude],13)},()=>showToast('No se pudo acceder a tu ubicación.'),{enableHighAccuracy:true,timeout:10000})}
+
+async function searchLocation(event){
+  event.preventDefault();
+  const input=$('locationSearchInput'),results=$('locationSearchResults'),query=input.value.trim();
+  if(!query)return showToast('Escribí una dirección o un lugar para buscar.');
+  results.classList.remove('hidden');results.innerHTML='<p class="location-search-status">Buscando ubicación…</p>';
+  try{
+    const url=new URL('https://nominatim.openstreetmap.org/search');
+    url.searchParams.set('q',/pergamino/i.test(query)?query:`${query}, Pergamino, Buenos Aires, Argentina`);
+    url.searchParams.set('format','jsonv2');url.searchParams.set('countrycodes','ar');url.searchParams.set('limit','5');url.searchParams.set('addressdetails','1');url.searchParams.set('accept-language','es');
+    const response=await fetch(url.toString());if(!response.ok)throw new Error('No se pudo consultar el buscador.');
+    const places=await response.json();
+    if(!places.length){results.innerHTML='<p class="location-search-status">No encontramos esa ubicación. Probá agregando calle, altura y Pergamino.</p>';return}
+    results.innerHTML=`${places.map((place,index)=>`<button class="location-result" type="button" data-location-result="${index}">${escapeHtml(shortLocationLabel(place))}<small>${escapeHtml(place.display_name||'')}</small></button>`).join('')}<p class="location-search-status">Resultados de OpenStreetMap</p>`;
+    results.querySelectorAll('[data-location-result]').forEach(button=>button.addEventListener('click',()=>{
+      const place=places[Number(button.dataset.locationResult)],lat=Number(place.lat),lng=Number(place.lon);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+      input.value=shortLocationLabel(place);setOrigin(lat,lng,place.display_name||input.value);map.flyTo([lat,lng],16);results.classList.add('hidden');
+    }));
+  }catch(error){console.error(error);results.innerHTML='<p class="location-search-status">No se pudo buscar ahora. Podés usar Mi ubicación o Elegir en mapa.</p>'}
+}
+
+function shortLocationLabel(place){const address=place.address||{};return [address.road||address.pedestrian||address.neighbourhood||place.name,address.house_number,address.city||address.town||address.village].filter(Boolean).join(' ')||place.display_name||'Ubicación encontrada'}
 
 function render(){renderMarkers();$('count').textContent=hydrants.length;renderList();if(hydrants.length)fitAll()}
 function renderMarkers(){markers.forEach(marker=>marker.remove());markers.clear();hydrants.forEach(item=>{const state=item.status==='Inactivo'?'Inactivo':'Activo';const icon=L.divIcon({className:'hydrant-marker',html:`<div class="hydrant-pin ${state==='Inactivo'?'fuera-servicio':''}"><span>💧</span></div>`,iconSize:[34,34],iconAnchor:[17,31]});const marker=L.marker([item.lat,item.lng],{icon}).addTo(map);const distance=origin?formatDistance(distanceKm(origin,item)):'';marker.bindPopup(`<div class="mini-popup"><strong>${escapeHtml(item.name)}</strong><small>${state}${distance?` · ${distance}`:''}</small><button type="button" data-open-id="${escapeHtml(String(item.id))}">Ver información</button></div>`);marker.on('popupopen',event=>{event.popup.getElement().querySelector('[data-open-id]')?.addEventListener('click',()=>showDetails(item.id))});markers.set(String(item.id),marker)})}

@@ -1,6 +1,7 @@
 /*************** SBVP - CONTROL DE CHOFERES ***************/
 const SPREADSHEET_ID = '1liMVXb48E4O271C0xxv_4pT_N00xdr2xNrX61A221Jg';
 const ROOT_FOLDER_ID = '1JTrRwKdj86zQ7N0IvZOofb6jKPHhHb9f';
+const BOTIQUINES_FOLDER_ID = '1-jPHZWz1tmrx4y36sJf1fJcLW6_Fc6qw';
 const INSTITUTION = 'Sociedad Bomberos Voluntarios Pergamino';
 const LOGO_PUBLIC_URL = 'https://bomberospergamino.github.io/choferes/logo-sbvp.png';
 
@@ -615,9 +616,8 @@ function buildReportFilename_(payload, now) {
 
 function saveBotiquines_(payload) {
   const now = new Date();
-  const root = DriveApp.getFolderById(ROOT_FOLDER_ID);
-  const folder = getOrCreateFolder_(root, 'BOTIQUINES');
-  const vehicles = (payload.vehicles || []).filter(vehicle => BOTIQUIN_EXCLUDED_VEHICLES.indexOf(vehicle) < 0);
+  const folder = DriveApp.getFolderById(BOTIQUINES_FOLDER_ID);
+  const vehicles = (payload.vehicles || []).filter(vehicle => !isBotiquinExcludedVehicle_(vehicle));
   if (!vehicles.length) throw new Error('No hay moviles para guardar en el control de botiquines');
   const missingVehicle = vehicles.find(vehicle => !String(((payload.records && payload.records[vehicle]) || {}).botiquin || '').trim());
   if (missingVehicle) throw new Error(`Falta completar el botiquin / precinto de ${missingVehicle}`);
@@ -635,7 +635,7 @@ function saveBotiquines_(payload) {
 }
 
 function buildBotiquinesPdf_(payload, now) {
-  const rows = (payload.vehicles || []).filter(vehicle => BOTIQUIN_EXCLUDED_VEHICLES.indexOf(vehicle) < 0).map(vehicle => {
+  const rows = (payload.vehicles || []).filter(vehicle => !isBotiquinExcludedVehicle_(vehicle)).map(vehicle => {
     const record = (payload.records && payload.records[vehicle]) || {};
     return `<tr><td>${esc(vehicle)}</td><td>${esc(record.botiquin || '')}</td></tr>`;
   }).join('');
@@ -670,11 +670,17 @@ function getOrCreateFolder_(parent, name) {
   return folders.hasNext() ? folders.next() : parent.createFolder(name);
 }
 
+function isBotiquinExcludedVehicle_(vehicle) {
+  const normalized = String(vehicle || '').toUpperCase();
+  const match = normalized.match(/\d+/);
+  return BOTIQUIN_EXCLUDED_VEHICLES.indexOf(normalized.trim()) >= 0 || (/MOVIL/.test(normalized) && match && match[0] === '3');
+}
+
 function setupDriveFolders_() {
   const root = DriveApp.getFolderById(ROOT_FOLDER_ID);
   VEHICLES.forEach(vehicle => getOrCreateFolder_(root, vehicle));
   getOrCreateFolder_(root, 'NOVEDADES');
-  getOrCreateFolder_(root, 'BOTIQUINES');
+  DriveApp.getFolderById(BOTIQUINES_FOLDER_ID);
 }
 
 function getLogoHtml_() {

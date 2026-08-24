@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-choferes-v19';
+const CACHE_NAME = 'sbvp-choferes-v20-sin-movil-3';
 const APP_ASSETS = [
   './',
   './index.html',
