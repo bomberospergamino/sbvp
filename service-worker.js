@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v29-encuentros-generales';
+const CACHE_NAME = 'sbvp-home-v30-anuncios-y-fichero-ubicacion';
 const APP_SHELL = [
   './',
   './index.html',

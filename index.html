@@ -26,13 +26,13 @@
   <header class="topbar">
     <a href="./" aria-label="Ir al inicio" title="Ir al inicio"><img src="logo-sbvp.png" alt="Sociedad Bomberos Voluntarios Pergamino" class="logo" /></a>
     <div class="topbar-text">
+      <button id="ficheroAccess" class="topbar-link location-locked" type="button">
+        <span aria-hidden="true">🔒</span>
+        <span>Fichero · verificar ubicación</span>
+      </button>
       <p class="eyebrow">Sociedad Bomberos Voluntarios Pergamino</p>
       <h1>Bienvenidos</h1>
     </div>
-    <a class="topbar-link" href="apps/fichero/">
-      <span aria-hidden="true">🐾</span>
-      <span>Fichero</span>
-    </a>
   </header>
 
   <main class="app-shell">
@@ -86,6 +86,19 @@
             <small>Carga y seguimiento de desvíos operativos.</small>
           </span>
         </a>
+      </div>
+    </section>
+
+    <section class="section-block announcements-section" aria-labelledby="announcementsTitle">
+      <div class="section-heading announcements-heading">
+        <div>
+          <p class="eyebrow">Para tener presente</p>
+          <h2 id="announcementsTitle">Anuncios y recordatorios</h2>
+        </div>
+        <span class="announcements-range">Hoy y próximos 14 días</span>
+      </div>
+      <div id="announcementsPanel" class="announcements-panel" aria-live="polite">
+        <p class="announcements-status">Buscando cumpleaños, aniversarios y novedades…</p>
       </div>
     </section>
 

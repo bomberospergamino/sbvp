@@ -1,4 +1,9 @@
 const APP_TITLE = 'Herramientas operativas SBVP';
+const FICHERO_URL = 'apps/fichero/';
+const CUARTEL_LOCATION = { latitude: -33.8967915, longitude: -60.5823517 };
+const FICHERO_RADIUS_METERS = 200;
+const ANNOUNCEMENTS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxI1YYEKCwVon5SwCxRxrmUg5ZYJ3JGKqlP0G53Ubr4gRshs-IUYA7Z_XIO0HDUhn7xew/exec';
+const ANNOUNCEMENTS_DAYS = 14;
 
 const toast = document.getElementById('toast');
 const installBanner = document.getElementById('installBanner');
@@ -6,10 +11,137 @@ const installBtn = document.getElementById('installBtn');
 const dismissInstallBtn = document.getElementById('dismissInstallBtn');
 const permanentInstallBtn = document.getElementById('permanentInstallBtn');
 const lastCodeUpdate = document.getElementById('lastCodeUpdate');
+const ficheroAccess = document.getElementById('ficheroAccess');
+const announcementsPanel = document.getElementById('announcementsPanel');
 
 loadLastCodeUpdate();
+loadAnnouncements();
+
+if(ficheroAccess) ficheroAccess.addEventListener('click', verifyFicheroLocation);
 
 let deferredInstallPrompt = null;
+
+function verifyFicheroLocation(){
+  if(!navigator.geolocation){
+    showToast('Este dispositivo no permite verificar la ubicación.');
+    return;
+  }
+
+  ficheroAccess.disabled = true;
+  ficheroAccess.classList.add('location-checking');
+  ficheroAccess.querySelector('span:last-child').textContent = 'Verificando ubicación…';
+
+  navigator.geolocation.getCurrentPosition((position) => {
+    const distance = distanceInMeters(
+      position.coords.latitude,
+      position.coords.longitude,
+      CUARTEL_LOCATION.latitude,
+      CUARTEL_LOCATION.longitude
+    );
+    const accuracyAllowance = Math.min(position.coords.accuracy || 0, 80);
+    if(distance <= FICHERO_RADIUS_METERS + accuracyAllowance){
+      ficheroAccess.querySelector('span:first-child').textContent = '🐾';
+      ficheroAccess.querySelector('span:last-child').textContent = 'Fichero habilitado';
+      window.location.href = FICHERO_URL;
+      return;
+    }
+
+    resetFicheroAccess();
+    showToast(`El Fichero solo se habilita en el cuartel. Distancia detectada: ${Math.round(distance)} m.`);
+  }, (error) => {
+    resetFicheroAccess();
+    const message = error.code === error.PERMISSION_DENIED
+      ? 'Necesitamos permiso de ubicación para habilitar el Fichero.'
+      : 'No pudimos verificar tu ubicación. Intentá nuevamente cerca del cuartel.';
+    showToast(message);
+  }, { enableHighAccuracy:true, timeout:12000, maximumAge:30000 });
+}
+
+function resetFicheroAccess(){
+  ficheroAccess.disabled = false;
+  ficheroAccess.classList.remove('location-checking');
+  ficheroAccess.querySelector('span:first-child').textContent = '🔒';
+  ficheroAccess.querySelector('span:last-child').textContent = 'Fichero · verificar ubicación';
+}
+
+function distanceInMeters(lat1, lon1, lat2, lon2){
+  const toRadians = (degrees) => degrees * Math.PI / 180;
+  const earthRadius = 6371000;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+async function loadAnnouncements(){
+  if(!announcementsPanel) return;
+  const dates = Array.from({length:ANNOUNCEMENTS_DAYS + 1}, (_, offset) => dateInArgentina(offset));
+  try{
+    const results = await Promise.all(dates.map(async (date) => {
+      try{
+        const url = `${ANNOUNCEMENTS_ENDPOINT}?action=calendario&date=${encodeURIComponent(date)}`;
+        const response = await fetch(url, {cache:'no-store'});
+        if(!response.ok) return [];
+        const data = await response.json();
+        return (data.items || []).map((item) => ({...item, date}));
+      }catch(error){
+        return [];
+      }
+    }));
+    renderAnnouncements(results.flat());
+  }catch(error){
+    announcementsPanel.innerHTML = '<p class="announcements-status">No se pudieron cargar los recordatorios en este momento.</p>';
+  }
+}
+
+function renderAnnouncements(items){
+  announcementsPanel.innerHTML = '';
+  if(!items.length){
+    announcementsPanel.innerHTML = '<p class="announcements-status">No hay recordatorios para hoy ni para los próximos 14 días.</p>';
+    return;
+  }
+  items.forEach((item) => {
+    const card = document.createElement('article');
+    card.className = 'announcement-card';
+    const icon = document.createElement('span');
+    icon.className = 'announcement-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = announcementIcon(item.tipo);
+    const content = document.createElement('div');
+    const date = document.createElement('strong');
+    date.textContent = announcementDateLabel(item.date);
+    const message = document.createElement('span');
+    message.textContent = item.mensaje || item.tipo || 'Recordatorio';
+    content.append(date, message);
+    card.append(icon, content);
+    announcementsPanel.appendChild(card);
+  });
+}
+
+function announcementIcon(type){
+  const value = String(type || '').toLowerCase();
+  if(value.includes('cumple')) return '🎂';
+  if(value.includes('anivers') || value.includes('alta')) return '🎖️';
+  if(value.includes('reun')) return '📅';
+  return '📌';
+}
+
+function dateInArgentina(offsetDays = 0){
+  const date = new Date(Date.now() + offsetDays * 86400000);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone:'America/Argentina/Buenos_Aires', year:'numeric', month:'2-digit', day:'2-digit'
+  }).format(date);
+}
+
+function announcementDateLabel(value){
+  const today = dateInArgentina(0);
+  const tomorrow = dateInArgentina(1);
+  if(value === today) return 'Hoy';
+  if(value === tomorrow) return 'Mañana';
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long'});
+}
 
 async function loadLastCodeUpdate(){
   if(!lastCodeUpdate) return;
