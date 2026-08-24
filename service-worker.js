@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v24-buscador-hidrantes';
+const CACHE_NAME = 'sbvp-home-v26-agenda-activa';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,7 +9,12 @@ const APP_SHELL = [
   './apps/hidrantes/',
   './apps/hidrantes/index.html',
   './apps/hidrantes/styles.css',
-  './apps/hidrantes/app.js'
+  './apps/hidrantes/app.js',
+  './apps/agenda/',
+  './apps/agenda/index.html',
+  './apps/agenda/styles.css',
+  './apps/agenda/config.js',
+  './apps/agenda/app.js'
 ];
 
 self.addEventListener('install', (event) => {

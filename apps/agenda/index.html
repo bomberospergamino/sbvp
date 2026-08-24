@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#063452">
+  <meta name="description" content="Agenda telefónica interna de Bomberos Voluntarios Pergamino.">
+  <title>Agenda telefónica · SBVP</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="back" href="../../" aria-label="Volver al inicio">‹</a>
+    <a href="../../" aria-label="Ir al inicio"><img src="../../logo-sbvp.png" alt="Escudo SBVP"></a>
+    <div><span>SBVP · Recursos rápidos</span><h1>Agenda telefónica</h1></div>
+    <button id="refreshBtn" class="refresh" type="button" aria-label="Actualizar agenda" title="Actualizar agenda">↻</button>
+  </header>
+
+  <main>
+    <section class="directory-head" aria-labelledby="directoryTitle">
+      <div>
+        <p class="eyebrow">Directorio institucional</p>
+        <h2 id="directoryTitle">Contactos</h2>
+        <p id="summary" class="summary">Cargando agenda…</p>
+      </div>
+      <label class="search">
+        <span aria-hidden="true">⌕</span>
+        <span class="sr-only">Buscar contacto</span>
+        <input id="searchInput" type="search" placeholder="Buscar por nombre, función o rol" autocomplete="off">
+      </label>
+      <div class="filters">
+        <label>Categoría
+          <select id="categoryFilter"><option value="">Todas</option></select>
+        </label>
+        <label>Rol o función
+          <select id="roleFilter"><option value="">Todos</option></select>
+        </label>
+        <button id="clearFiltersBtn" type="button">Limpiar</button>
+      </div>
+      <div class="directory-actions">
+        <button id="addContactBtn" class="primary-action" type="button">＋ Agregar contacto</button>
+        <button id="downloadBtn" type="button">⇩ Descargar Excel</button>
+      </div>
+    </section>
+
+    <section id="statusPanel" class="status-panel" aria-live="polite">Conectando con la base de contactos…</section>
+    <section id="contactList" class="contact-list" aria-label="Resultados de la agenda"></section>
+  </main>
+
+  <template id="contactTemplate">
+    <article class="contact-card">
+      <div class="avatar" aria-hidden="true"></div>
+      <div class="contact-info">
+        <h3></h3>
+        <div class="badges"></div>
+        <a class="phone-number"></a>
+      </div>
+      <div class="contact-actions">
+        <a class="call" aria-label="Llamar"><span aria-hidden="true">☎</span><span>Llamar</span></a>
+        <a class="whatsapp" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp"><span aria-hidden="true">◉</span><span>WhatsApp</span></a>
+        <button class="edit" type="button"><span aria-hidden="true">✎</span><span>Editar</span></button>
+      </div>
+    </article>
+  </template>
+
+  <dialog id="contactDialog">
+    <form id="contactForm">
+      <div class="dialog-head">
+        <div><p class="eyebrow">Agenda SBVP</p><h2 id="dialogTitle">Nuevo contacto</h2></div>
+        <button id="closeDialogBtn" class="dialog-close" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <input id="contactId" type="hidden">
+      <input id="sourceName" type="hidden">
+      <input id="sourcePhone" type="hidden">
+      <label>Nombre y apellido
+        <input id="contactName" required maxlength="120" autocomplete="name">
+      </label>
+      <div class="form-row">
+        <label>Categoría
+          <input id="contactCategory" required maxlength="100" list="categoryOptions">
+        </label>
+        <label>Rol o función
+          <input id="contactRole" required maxlength="100" list="roleOptions">
+        </label>
+      </div>
+      <label>Teléfono
+        <input id="contactPhone" required maxlength="60" inputmode="tel" autocomplete="tel">
+      </label>
+      <datalist id="categoryOptions"></datalist>
+      <datalist id="roleOptions"></datalist>
+      <div class="dialog-actions">
+        <button id="cancelDialogBtn" type="button">Cancelar</button>
+        <button class="primary-action" type="submit">Guardar contacto</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

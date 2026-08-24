@@ -1225,6 +1225,10 @@ td input[type="radio"] {
   padding: 8px;
 }
 
+.calendar-export.export-mode .day-head::after {
+  content: none;
+}
+
 .calendar-export.export-mode .event-pill img {
   width: 48px;
   height: 48px;
