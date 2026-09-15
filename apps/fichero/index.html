@@ -258,10 +258,10 @@
       .right .card{ width:100%; }
     }
   </style>
-  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-unificado-34">
+  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-visual-38">
 </head>
 
-<body>
+<body class="fichero-page">
   <div class="screen">
     <!-- IZQUIERDA -->
     <aside class="left">
@@ -271,8 +271,7 @@
 
       <nav class="tabs" aria-label="Navegación">
         <a class="tab active" href="index.html">📌 FICHERO</a>
-        <a class="tab" href="central.html">👥 EN CENTRAL</a>
-        <a class="tab" href="reporte.html">📄 REPORTE</a>
+        <a class="tab" href="central.html">👥 DISPONIBLES</a>
       </nav>
     </aside>
 
@@ -286,22 +285,16 @@
         <div class="legajoBox">
           <div class="legajoLabel">
             <span>Legajo</span>
-            <span>solo números</span>
           </div>
 
           <input id="legajo" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0000" />
 
           <div class="btnRow">
-            <button class="btn out" id="btnSalida" onclick="fichar('SALIDA')">⟵ SALIDA</button>
-            <button class="btn in" id="btnEntrada" onclick="fichar('INGRESO')">ENTRADA ⟶</button>
+            <button class="btn out" id="btnSalida" onclick="fichar('SALIDA')"><span>SALIDA</span><span aria-hidden="true">↓</span></button>
+            <button class="btn in" id="btnEntrada" onclick="fichar('INGRESO')"><span>ENTRADA</span><span aria-hidden="true">↓</span></button>
           </div>
 
           <div class="toast" id="toast"></div>
-
-          <div class="footerRow">
-            <button class="btn secondary" onclick="window.location.href='estado.html'">🔎 CONSULTAR ESTADO</button>
-            <div class="hint">Tip: presioná <b>Enter</b> para <b>Entrada</b>.</div>
-          </div>
         </div>
       </section>
     </main>
@@ -318,6 +311,13 @@
   </div>
 
   <div class="footerText">Sociedad Bomberos Voluntarios Pergamino</div>
+  <div class="successOverlay" id="successOverlay" role="status" aria-live="assertive">
+    <div class="successDialog">
+      <span class="successCheck" aria-hidden="true">✓</span>
+      <strong>Fichada guardada</strong>
+      <span id="successDetail"></span>
+    </div>
+  </div>
 
 <script>
   const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
@@ -453,7 +453,7 @@
 
     const sendPromise = (async ()=>{
       const ip = await getIPFast(350);
-      const ua = `PUNTO_FICHAJE=${point.name} | ${ip} | ${navigator.userAgent}`;
+      const ua = `${ip} | ${navigator.userAgent}`;
 
       const form = new FormData();
       form.append("legajo", legajo);
@@ -482,11 +482,25 @@
       if(!j.ok){
         showToast(`Error: ${j.error || "desconocido"}`, "err");
       }else{
-        showToast(`Registro confirmado · ${point.name}`, "ok");
+        localStorage.setItem("sbvpFicheroUpdatedAt", String(Date.now()));
+        if("BroadcastChannel" in window){
+          const channel = new BroadcastChannel("sbvp-fichero");
+          channel.postMessage({type:"fichada-guardada"});
+          channel.close();
+        }
+        showSavedConfirmation(`${movimiento} · ${point.name}`);
       }
     }catch(err){
       showToast(`Error de red: ${String(err)}`, "err");
     }
+  }
+
+  function showSavedConfirmation(detail){
+    const overlay = document.getElementById("successOverlay");
+    document.getElementById("successDetail").textContent = detail;
+    overlay.classList.add("show");
+    clearTimeout(showSavedConfirmation.timer);
+    showSavedConfirmation.timer = setTimeout(() => overlay.classList.remove("show"), 2400);
   }
 
 window.addEventListener("load", ()=>{

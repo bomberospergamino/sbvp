@@ -396,27 +396,23 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-unificado-34">
+  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-visual-38">
 </head>
 
-<body>
+<body class="available-page">
   <div class="screen">
     <aside class="left">
       <div class="logoBox">
         <a href="../../" aria-label="Ir al inicio" title="Ir al inicio"><img src="logo.png" alt="Logo Bomberos Pergamino"></a>
       </div>
 
-      <nav class="tabs" aria-label="Navegación">
-        <a class="tab active" href="central.html">👥 DISPONIBLES</a>
-        <a class="tab" href="reporte.html">📄 REPORTE</a>
-      </nav>
     </aside>
 
     <main class="center">
       <section class="panel">
         <div class="head">
           <div class="titleWrap">
-            <h1 class="title">PERSONAL PRESENTE</h1>
+            <h1 class="title">DISPONIBLES</h1>
             <div class="muted">
               Personal cuyo último movimiento es <b>INGRESO</b>, en cualquiera de los puntos de fichaje.
             </div>
@@ -431,7 +427,7 @@
 
         <div class="cardsWrap">
           <div class="cards" id="cards">
-            <div class="emptyState">Cargando personal en central…</div>
+            <div class="emptyState">Cargando personal disponible…</div>
           </div>
         </div>
       </section>
@@ -443,6 +439,10 @@
         <div class="time" id="timeStr">—</div>
         <div class="tz">Argentina (AR)</div>
       </div>
+      <nav class="tabs" aria-label="Navegación">
+        <a class="tab active" href="central.html">👥 DISPONIBLES</a>
+        <a class="tab" href="reporte.html">📄 REPORTE</a>
+      </nav>
     </aside>
   </div>
 
@@ -451,7 +451,6 @@
 <script>
   const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
   const TZ = "America/Argentina/Buenos_Aires";
-  if(window.matchMedia("(max-width: 980px)").matches) window.location.replace("index.html");
 
   const fmtDate = new Intl.DateTimeFormat("es-AR", {
     timeZone: TZ,
@@ -538,13 +537,31 @@
     if(!Array.isArray(data) || data.length === 0){
       cards.innerHTML = `
         <div class="emptyState">
-          No hay personal fichado como <b>dentro</b> en este momento.
+          No hay personal fichado como <b>disponible</b> en este momento.
         </div>
       `;
       return;
     }
 
-    cards.innerHTML = data.map(p => {
+    const preferredOrder = ["Cuartel Central", "Destacamento N°1", "Casa de Irina", "Punto no informado"];
+    const groups = data.reduce((result, person) => {
+      const point = pointFromPerson(person);
+      if(!result[point]) result[point] = [];
+      result[point].push(person);
+      return result;
+    }, {});
+
+    const points = Object.keys(groups).sort((a, b) => {
+      const ai = preferredOrder.indexOf(a);
+      const bi = preferredOrder.indexOf(b);
+      return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi) || a.localeCompare(b, "es");
+    });
+
+    cards.innerHTML = points.map(point => `
+      <section class="locationSection">
+        <h2 class="locationTitle"><span>📍 ${esc(point)}</span><small>${groups[point].length} ${groups[point].length === 1 ? "persona" : "personas"}</small></h2>
+        <div class="locationCards">
+        ${groups[point].map(p => {
       const arrival = formatArrival(p.ultimo_timestamp);
 
       return `
@@ -573,27 +590,15 @@
           </div>
 
           <div class="row">
-            <div class="label">Chofer</div>
-            <div class="value">${esc(safeValue(p.chofer))}</div>
-          </div>
-
-          <div class="row">
-            <div class="label">Especialidad</div>
-            <div class="value">${esc(safeValue(p.especialidad))}</div>
-          </div>
-
-          <div class="row">
             <div class="label">Legajo</div>
             <div class="value">${esc(safeValue(p.legajo))}</div>
           </div>
-
-          <div class="row location-row">
-            <div class="label">Punto de ingreso</div>
-            <div class="value">📍 ${esc(pointFromPerson(p))}</div>
-          </div>
         </article>
       `;
-    }).join("");
+        }).join("")}
+        </div>
+      </section>
+    `).join("");
   }
 
   async function loadCentral(){
@@ -635,8 +640,17 @@
   }
 
   document.getElementById("refreshButton").addEventListener("click", loadCentral);
+  window.addEventListener("storage", event => {
+    if(event.key === "sbvpFicheroUpdatedAt") loadCentral();
+  });
+  if("BroadcastChannel" in window){
+    const ficheroChannel = new BroadcastChannel("sbvp-fichero");
+    ficheroChannel.addEventListener("message", event => {
+      if(event.data?.type === "fichada-guardada") loadCentral();
+    });
+  }
   loadCentral();
-  setInterval(loadCentral, 15000);
+  setInterval(loadCentral, 5000);
 </script>
 </body>
 </html>

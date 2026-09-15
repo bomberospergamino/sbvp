@@ -342,29 +342,21 @@
       .grid{ grid-template-columns: 1fr; }
     }
   </style>
-  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-unificado-34">
+  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-visual-38">
 </head>
-<body>
+<body class="report-page">
   <div class="screen">
     <aside class="left">
       <div class="logoBox">
         <a href="../../" aria-label="Ir al inicio" title="Ir al inicio"><img src="logo.png" alt="Logo Bomberos Pergamino"></a>
       </div>
 
-      <nav class="tabs" aria-label="Navegación">
-        <a class="tab" href="central.html">👥 DISPONIBLES</a>
-        <a class="tab active" href="reporte.html">📄 REPORTE</a>
-      </nav>
     </aside>
 
     <main class="center">
       <section class="panel">
         <h1 class="title">Reporte de fichadas</h1>
-        <div class="muted">
-          Ingresá la clave y elegí una fecha inicial y una fecha final. El sistema genera un archivo con dos hojas:
-          <b>DETALLE</b> y <b>RESUMEN</b>.  
-          El tiempo se consolida por persona aunque ingrese y salga en puntos diferentes; la ubicación de la permanencia corresponde a la <b>SALIDA</b>.
-        </div>
+        <div class="muted">Elegí el período que necesitás y descargá el informe.</div>
 
         <div class="grid" id="reportLock">
           <div class="field">
@@ -417,6 +409,10 @@
         <div class="time" id="timeStr">—</div>
         <div class="tz">Argentina (AR)</div>
       </div>
+      <nav class="tabs" aria-label="Navegación">
+        <a class="tab" href="central.html">👥 DISPONIBLES</a>
+        <a class="tab active" href="reporte.html">📄 REPORTE</a>
+      </nav>
     </aside>
   </div>
 
@@ -426,7 +422,6 @@
   const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
   const TZ = "America/Argentina/Buenos_Aires";
   const REPORT_PASSWORD = "1105";
-  if(window.matchMedia("(max-width: 980px)").matches) window.location.replace("index.html");
 
   const fmtDate = new Intl.DateTimeFormat("es-AR", {
     timeZone: TZ,
@@ -549,7 +544,7 @@
     setBusy(true);
 
     try{
-      const url = `${ENDPOINT}?action=reporte&desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}&consolidar_persona=1&ubicacion_cierre=salida`;
+      const url = `${ENDPOINT}?action=reporte&desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}&clave=${encodeURIComponent(REPORT_PASSWORD)}&consolidar_persona=1&ubicacion_cierre=salida`;
       const res = await fetch(url, { cache:"no-store" });
       const json = await res.json();
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v36-disponibles';
+const CACHE_NAME = 'sbvp-home-v38-fichero-visual';
 const APP_SHELL = [
   './',
   './index.html',
