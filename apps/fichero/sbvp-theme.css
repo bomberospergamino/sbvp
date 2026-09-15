@@ -140,13 +140,16 @@ body{
   }
   .available-page .right .tab,.report-page .right .tab{
     min-width:165px;justify-content:center;padding:8px 14px!important;border-radius:12px!important;
+    font-size:16px!important;font-weight:900!important;
   }
   .available-page .clock,.report-page .clock{
     width:auto!important;min-width:365px;padding:8px 16px!important;
     display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:14px!important;
   }
-  .available-page .clock .date,.report-page .clock .date{white-space:nowrap}
-  .available-page .clock .time,.report-page .clock .time{font-size:20px!important;white-space:nowrap}
+  .available-page .clock .date,.report-page .clock .date,
+  .available-page .clock .time,.report-page .clock .time{
+    font-size:16px!important;font-weight:900!important;white-space:nowrap;
+  }
   .available-page .clock .tz,.report-page .clock .tz{display:none!important}
   .available-page .panel,.report-page .panel{height:100%!important}
 }

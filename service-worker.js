@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v43-reloj-horizontal';
+const CACHE_NAME = 'sbvp-home-v44-datos-disponibles';
 const APP_SHELL = [
   './',
   './index.html',
