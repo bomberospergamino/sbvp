@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v32-fichero-derecha';
+const CACHE_NAME = 'sbvp-home-v33-tres-puntos-fichaje';
 const APP_SHELL = [
   './',
   './index.html',

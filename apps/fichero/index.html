@@ -309,6 +309,7 @@
       <section class="panel">
         <div class="title">REGISTRO</div>
         <div class="subtitle">Ingresá tu <b>legajo</b> y seleccioná <b>Entrada</b> o <b>Salida</b>.</div>
+        <div class="subtitle" id="ficheroPoint">📍 El punto de fichaje se verificará al registrar.</div>
 
         <div class="legajoBox">
           <div class="legajoLabel">
@@ -359,6 +360,12 @@
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
   const TZ = "America/Argentina/Buenos_Aires";
   const ENDPOINT_CAL = "https://script.google.com/macros/s/AKfycbxI1YYEKCwVon5SwCxRxrmUg5ZYJ3JGKqlP0G53Ubr4gRshs-IUYA7Z_XIO0HDUhn7xew/exec";
+  const FICHAJE_RADIUS_METERS = 200;
+  const FICHAJE_POINTS = [
+    { name:"Cuartel Central", address:"Castelli 1231", latitude:-33.8967915, longitude:-60.5823517 },
+    { name:"Destacamento N°1", address:"Senillosa 785", latitude:-33.8884932, longitude:-60.5533456 },
+    { name:"Casa de Irina", address:"Belgrano 1083", latitude:-33.8936940, longitude:-60.5786412 }
+  ];
 
   // Clock AR
   const fmtDate = new Intl.DateTimeFormat("es-AR", { timeZone: TZ, weekday:"long", year:"numeric", month:"2-digit", day:"2-digit" });
@@ -438,6 +445,7 @@ async function loadCalendar(){
   const $toast  = document.getElementById("toast");
   const $btnEntrada = document.getElementById("btnEntrada");
   const $btnSalida  = document.getElementById("btnSalida");
+  const $ficheroPoint = document.getElementById("ficheroPoint");
 
   function setBusy(b){ $btnEntrada.disabled=b; $btnSalida.disabled=b; }
   function showToast(msg, type="ok"){
@@ -468,6 +476,47 @@ async function loadCalendar(){
     }
   }
 
+  function distanceInMeters(lat1, lon1, lat2, lon2){
+    const radians = value => value * Math.PI / 180;
+    const earthRadius = 6371000;
+    const dLat = radians(lat2 - lat1);
+    const dLon = radians(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2
+      + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(dLon / 2) ** 2;
+    return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function locateFichajePoint(){
+    return new Promise((resolve, reject) => {
+      if(!navigator.geolocation){
+        reject(new Error("Este dispositivo no permite verificar la ubicación."));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(position => {
+        const nearest = FICHAJE_POINTS.map(point => ({
+          ...point,
+          distance:distanceInMeters(position.coords.latitude, position.coords.longitude, point.latitude, point.longitude)
+        })).sort((a, b) => a.distance - b.distance)[0];
+        const allowance = Math.min(position.coords.accuracy || 0, 80);
+        if(nearest.distance > FICHAJE_RADIUS_METERS + allowance){
+          reject(new Error(`No estás dentro de un punto habilitado. El más cercano está a ${Math.round(nearest.distance)} m.`));
+          return;
+        }
+        resolve({
+          ...nearest,
+          detectedLatitude:position.coords.latitude,
+          detectedLongitude:position.coords.longitude,
+          accuracy:position.coords.accuracy || ""
+        });
+      }, error => {
+        const message = error.code === error.PERMISSION_DENIED
+          ? "Tenés que permitir la ubicación para poder fichar."
+          : "No se pudo verificar la ubicación. Intentá nuevamente.";
+        reject(new Error(message));
+      }, {enableHighAccuracy:true, timeout:12000, maximumAge:30000});
+    });
+  }
+
   // ✅ modo optimista (libera el panel rápido)
   async function fichar(movimiento){
     const legajo = ($legajo.value || "").trim();
@@ -478,15 +527,30 @@ async function loadCalendar(){
 
     setBusy(true);
 
+    let point;
+    try{
+      point = await locateFichajePoint();
+      $ficheroPoint.textContent = `📍 ${point.name} · ${point.address}`;
+    }catch(error){
+      setBusy(false);
+      showToast(error.message, "err");
+      return;
+    }
+
     const sendPromise = (async ()=>{
       const ip = await getIPFast(350);
-      const ua = `${ip} | ${navigator.userAgent}`;
+      const ua = `PUNTO_FICHAJE=${point.name} | ${ip} | ${navigator.userAgent}`;
 
       const form = new FormData();
       form.append("legajo", legajo);
       form.append("movimiento", movimiento);
       form.append("ip_externa", ip);
       form.append("user_agent", ua);
+      form.append("punto_fichada", point.name);
+      form.append("direccion_fichada", point.address);
+      form.append("latitud_fichada", point.detectedLatitude);
+      form.append("longitud_fichada", point.detectedLongitude);
+      form.append("precision_fichada", point.accuracy);
 
       const res = await fetch(ENDPOINT, { method:"POST", body: form });
       const text = await res.text();
@@ -504,7 +568,7 @@ async function loadCalendar(){
       if(!j.ok){
         showToast(`Error: ${j.error || "desconocido"}`, "err");
       }else{
-        showToast("Registro confirmado", "ok");
+        showToast(`Registro confirmado · ${point.name}`, "ok");
       }
     }catch(err){
       showToast(`Error de red: ${String(err)}`, "err");

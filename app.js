@@ -1,7 +1,11 @@
 const APP_TITLE = 'Herramientas operativas SBVP';
 const FICHERO_URL = 'apps/fichero/';
-const CUARTEL_LOCATION = { latitude: -33.8967915, longitude: -60.5823517 };
 const FICHERO_RADIUS_METERS = 200;
+const FICHERO_LOCATIONS = [
+  {name:'Cuartel Central', address:'Castelli 1231', latitude:-33.8967915, longitude:-60.5823517},
+  {name:'Destacamento N°1', address:'Senillosa 785', latitude:-33.8884932, longitude:-60.5533456},
+  {name:'Casa de Irina', address:'Belgrano 1083', latitude:-33.8936940, longitude:-60.5786412}
+];
 const ANNOUNCEMENTS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxI1YYEKCwVon5SwCxRxrmUg5ZYJ3JGKqlP0G53Ubr4gRshs-IUYA7Z_XIO0HDUhn7xew/exec';
 
 const toast = document.getElementById('toast');
@@ -31,22 +35,18 @@ function verifyFicheroLocation(){
   ficheroAccess.querySelector('span:last-child').textContent = 'Verificando ubicación…';
 
   navigator.geolocation.getCurrentPosition((position) => {
-    const distance = distanceInMeters(
-      position.coords.latitude,
-      position.coords.longitude,
-      CUARTEL_LOCATION.latitude,
-      CUARTEL_LOCATION.longitude
-    );
+    const nearest = findNearestFicheroLocation(position.coords.latitude, position.coords.longitude);
     const accuracyAllowance = Math.min(position.coords.accuracy || 0, 80);
-    if(distance <= FICHERO_RADIUS_METERS + accuracyAllowance){
+    if(nearest.distance <= FICHERO_RADIUS_METERS + accuracyAllowance){
       ficheroAccess.querySelector('span:first-child').textContent = '🐾';
       ficheroAccess.querySelector('span:last-child').textContent = 'Fichero habilitado';
+      sessionStorage.setItem('sbvpFicheroPoint', nearest.location.name);
       window.location.href = FICHERO_URL;
       return;
     }
 
     resetFicheroAccess();
-    showToast(`El Fichero solo se habilita en el cuartel. Distancia detectada: ${Math.round(distance)} m.`);
+    showToast(`No estás dentro de un punto de fichaje. El más cercano está a ${Math.round(nearest.distance)} m.`);
   }, (error) => {
     resetFicheroAccess();
     const message = error.code === error.PERMISSION_DENIED
@@ -54,6 +54,13 @@ function verifyFicheroLocation(){
       : 'No pudimos verificar tu ubicación. Intentá nuevamente cerca del cuartel.';
     showToast(message);
   }, { enableHighAccuracy:true, timeout:12000, maximumAge:30000 });
+}
+
+function findNearestFicheroLocation(latitude, longitude){
+  return FICHERO_LOCATIONS.map((location) => ({
+    location,
+    distance:distanceInMeters(latitude, longitude, location.latitude, location.longitude)
+  })).sort((a, b) => a.distance - b.distance)[0];
 }
 
 function resetFicheroAccess(){
