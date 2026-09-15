@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v44-datos-disponibles';
+const CACHE_NAME = 'sbvp-home-v45-nombres-recordatorios';
 const APP_SHELL = [
   './',
   './index.html',

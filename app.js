@@ -8,6 +8,8 @@ const FICHERO_LOCATIONS = [
   {name:'Casa de Irina', address:'Belgrano 1083', latitude:-33.8936940, longitude:-60.5786412}
 ];
 const ANNOUNCEMENTS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxI1YYEKCwVon5SwCxRxrmUg5ZYJ3JGKqlP0G53Ubr4gRshs-IUYA7Z_XIO0HDUhn7xew/exec';
+const ANNOUNCEMENTS_SHEET_ID = '19DS99p_3Y3hjox5mldL9JJafdVV5lUkckdVPGUTu-TI';
+const ANNOUNCEMENTS_SHEET_GID = '2074941208';
 
 const toast = document.getElementById('toast');
 const installBanner = document.getElementById('installBanner');
@@ -96,14 +98,36 @@ async function loadAnnouncements(){
   if(!announcementsPanel) return;
   const today = dateInArgentina();
   try{
-    const url = `${ANNOUNCEMENTS_ENDPOINT}?action=calendario&date=${encodeURIComponent(today)}`;
-    const response = await fetch(url, {cache:'no-store'});
-    if(!response.ok) throw new Error('No se pudieron cargar los anuncios');
-    const data = await response.json();
-    renderAnnouncements(data.items || []);
+    renderAnnouncements(await loadAnnouncementsFromSheet(today));
   }catch(error){
-    announcementsPanel.innerHTML = '<p class="announcements-status">No se pudieron cargar los recordatorios en este momento.</p>';
+    try{
+      const url = `${ANNOUNCEMENTS_ENDPOINT}?action=calendario&date=${encodeURIComponent(today)}&_=${Date.now()}`;
+      const response = await fetch(url, {cache:'no-store'});
+      if(!response.ok) throw new Error('No se pudieron cargar los anuncios');
+      const data = await response.json();
+      renderAnnouncements(data.items || []);
+    }catch(_fallbackError){
+      announcementsPanel.innerHTML = '<p class="announcements-status">No se pudieron cargar los recordatorios en este momento.</p>';
+    }
   }
+}
+
+async function loadAnnouncementsFromSheet(today){
+  const query = `select B,F,H where A = date '${today}'`;
+  const url = `https://docs.google.com/spreadsheets/d/${ANNOUNCEMENTS_SHEET_ID}/gviz/tq?gid=${ANNOUNCEMENTS_SHEET_GID}&tqx=out:json&tq=${encodeURIComponent(query)}&_=${Date.now()}`;
+  const response = await fetch(url, {cache:'no-store'});
+  if(!response.ok) throw new Error('No se pudo leer la planilla de anuncios');
+  const source = await response.text();
+  const firstBrace = source.indexOf('{');
+  const lastBrace = source.lastIndexOf('}');
+  if(firstBrace < 0 || lastBrace < firstBrace) throw new Error('Respuesta inválida de la planilla');
+  const data = JSON.parse(source.slice(firstBrace, lastBrace + 1));
+  if(data.status !== 'ok') throw new Error('La planilla devolvió un error');
+  return (data.table?.rows || []).map((row) => ({
+    tipo: row.c?.[0]?.v || '',
+    nombre: row.c?.[1]?.v || '',
+    anios: row.c?.[2]?.v ?? ''
+  }));
 }
 
 function renderAnnouncements(items){
