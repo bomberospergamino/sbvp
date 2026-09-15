@@ -20,6 +20,12 @@ body{
   box-shadow:var(--shadow)!important;
 }
 .logoBox{border-radius:18px!important}
+.fichero-page .logoBox,.available-page .logoBox,.report-page .logoBox{
+  pointer-events:auto!important;
+}
+.fichero-page .logoBox a,.available-page .logoBox a,.report-page .logoBox a{
+  display:block;width:100%;height:100%;cursor:pointer;
+}
 .panel,.card,.personCard{border-radius:18px!important}
 .title,.lastName,.firstName,.row .value{color:var(--navy)!important}
 .muted,.subtitle,.row .label,.clock .tz{color:var(--muted)!important}
