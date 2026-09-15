@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v41-cabecera-compacta';
+const CACHE_NAME = 'sbvp-home-v42-actualizacion-red';
 const APP_SHELL = [
   './',
   './index.html',
@@ -36,6 +36,22 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if(event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+  const shouldRefresh = event.request.mode === 'navigate' ||
+    ['document', 'style', 'script'].includes(event.request.destination) ||
+    /\.(?:html|css|js)$/.test(url.pathname);
+
+  if(shouldRefresh){
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      }).catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
