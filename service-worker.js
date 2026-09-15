@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v33-tres-puntos-fichaje';
+const CACHE_NAME = 'sbvp-home-v34-fichero-unificado';
 const APP_SHELL = [
   './',
   './index.html',
@@ -14,7 +14,8 @@ const APP_SHELL = [
   './apps/agenda/index.html',
   './apps/agenda/styles.css',
   './apps/agenda/config.js',
-  './apps/agenda/app.js'
+  './apps/agenda/app.js',
+  './apps/fichero/sbvp-theme.css'
 ];
 
 self.addEventListener('install', (event) => {

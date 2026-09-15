@@ -1,5 +1,6 @@
 const APP_TITLE = 'Herramientas operativas SBVP';
-const FICHERO_URL = 'apps/fichero/';
+const FICHERO_MOBILE_URL = 'apps/fichero/';
+const FICHERO_DESKTOP_URL = 'apps/fichero/central.html';
 const FICHERO_RADIUS_METERS = 200;
 const FICHERO_LOCATIONS = [
   {name:'Cuartel Central', address:'Castelli 1231', latitude:-33.8967915, longitude:-60.5823517},
@@ -41,7 +42,7 @@ function verifyFicheroLocation(){
       ficheroAccess.querySelector('span:first-child').textContent = '🐾';
       ficheroAccess.querySelector('span:last-child').textContent = 'Fichero habilitado';
       sessionStorage.setItem('sbvpFicheroPoint', nearest.location.name);
-      window.location.href = FICHERO_URL;
+      window.location.href = window.matchMedia('(max-width: 980px)').matches ? FICHERO_MOBILE_URL : FICHERO_DESKTOP_URL;
       return;
     }
 

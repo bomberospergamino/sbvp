@@ -394,6 +394,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-unificado-34">
 </head>
 
 <body>
@@ -414,9 +415,9 @@
       <section class="panel">
         <div class="head">
           <div class="titleWrap">
-            <h1 class="title">EN CENTRAL</h1>
+            <h1 class="title">PERSONAL PRESENTE</h1>
             <div class="muted">
-              Personal cuyo último movimiento es <b>INGRESO</b>. Ordenado por <b>hora de llegada</b>.
+              Personal cuyo último movimiento es <b>INGRESO</b>, en cualquiera de los puntos de fichaje.
             </div>
           </div>
 
@@ -448,6 +449,7 @@
 <script>
   const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
   const TZ = "America/Argentina/Buenos_Aires";
+  if(window.matchMedia("(max-width: 980px)").matches) window.location.replace("index.html");
 
   const fmtDate = new Intl.DateTimeFormat("es-AR", {
     timeZone: TZ,
@@ -520,6 +522,14 @@
     });
   }
 
+  function pointFromPerson(person){
+    const direct = person.punto_fichada || person.punto || person.ubicacion || person.ultimo_punto;
+    if(direct) return direct;
+    const agent = String(person.user_agent || person.ultimo_user_agent || "");
+    const match = agent.match(/PUNTO_FICHAJE=([^|]+)/i);
+    return match ? match[1].trim() : "Punto no informado";
+  }
+
   function renderCards(data){
     const cards = document.getElementById("cards");
 
@@ -573,6 +583,11 @@
           <div class="row">
             <div class="label">Legajo</div>
             <div class="value">${esc(safeValue(p.legajo))}</div>
+          </div>
+
+          <div class="row location-row">
+            <div class="label">Punto de ingreso</div>
+            <div class="value">📍 ${esc(pointFromPerson(p))}</div>
           </div>
         </article>
       `;

@@ -342,6 +342,7 @@
       .grid{ grid-template-columns: 1fr; }
     }
   </style>
+  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-unificado-34">
 </head>
 <body>
   <div class="screen">
@@ -361,11 +362,24 @@
       <section class="panel">
         <h1 class="title">Reporte de fichadas</h1>
         <div class="muted">
-          Elegí una fecha inicial y una fecha final. El sistema genera un archivo con dos hojas:
+          Ingresá la clave y elegí una fecha inicial y una fecha final. El sistema genera un archivo con dos hojas:
           <b>DETALLE</b> y <b>RESUMEN</b>.  
-          El filtro corre desde <b>00:00</b> del día inicial hasta <b>23:59</b> del día final.
+          El tiempo se consolida por persona aunque ingrese y salga en puntos diferentes; la ubicación de la permanencia corresponde a la <b>SALIDA</b>.
         </div>
 
+        <div class="grid" id="reportLock">
+          <div class="field">
+            <label class="label" for="reportPassword">Clave de descarga</label>
+            <input type="password" id="reportPassword" inputmode="numeric" autocomplete="off" placeholder="••••" />
+          </div>
+          <div class="field" style="justify-content:end">
+            <button class="btn primary" id="btnUnlock">Habilitar reporte</button>
+          </div>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div id="reportControls" style="display:none">
         <div class="grid">
           <div class="field">
             <label class="label" for="desde">Fecha desde</label>
@@ -383,8 +397,6 @@
           <button class="btn secondary" id="btnHoy">Últimos 7 días</button>
         </div>
 
-        <div class="status" id="status"></div>
-
         <div class="result" id="result">
           <div class="stats">
             <div class="pill" id="detalleCount">Detalle: 0</div>
@@ -395,6 +407,7 @@
             <a class="linkBtn" id="sheetLink" href="#" target="_blank" rel="noopener noreferrer">📄 Abrir Google Sheet</a>
             <a class="linkBtn" id="xlsxLink" href="#" target="_blank" rel="noopener noreferrer">⬇ Descargar Excel</a>
           </div>
+        </div>
         </div>
       </section>
     </main>
@@ -413,6 +426,8 @@
 <script>
   const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
   const TZ = "America/Argentina/Buenos_Aires";
+  const REPORT_PASSWORD = "1105";
+  if(window.matchMedia("(max-width: 980px)").matches) window.location.replace("index.html");
 
   const fmtDate = new Intl.DateTimeFormat("es-AR", {
     timeZone: TZ,
@@ -451,6 +466,24 @@
   const $resumenCount = document.getElementById("resumenCount");
   const $sheetLink = document.getElementById("sheetLink");
   const $xlsxLink = document.getElementById("xlsxLink");
+  const $reportPassword = document.getElementById("reportPassword");
+  const $btnUnlock = document.getElementById("btnUnlock");
+  const $reportControls = document.getElementById("reportControls");
+
+  function unlockReport(){
+    if($reportPassword.value !== REPORT_PASSWORD){
+      showStatus("Clave incorrecta.", "err");
+      return;
+    }
+    document.getElementById("reportLock").style.display = "none";
+    $reportControls.style.display = "block";
+    hideStatus();
+  }
+
+  $btnUnlock.addEventListener("click", unlockReport);
+  $reportPassword.addEventListener("keydown", event => {
+    if(event.key === "Enter") unlockReport();
+  });
 
   function showStatus(msg, type="ok"){
     $status.className = `status ${type}`;
@@ -517,7 +550,7 @@
     setBusy(true);
 
     try{
-      const url = `${ENDPOINT}?action=reporte&desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}`;
+      const url = `${ENDPOINT}?action=reporte&desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}&consolidar_persona=1&ubicacion_cierre=salida`;
       const res = await fetch(url, { cache:"no-store" });
       const json = await res.json();
 
