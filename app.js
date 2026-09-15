@@ -20,8 +20,10 @@ const announcementsPanel = document.getElementById('announcementsPanel');
 
 loadLastCodeUpdate();
 loadAnnouncements();
+updateFicheroAccessLabel();
 
 if(ficheroAccess) ficheroAccess.addEventListener('click', verifyFicheroLocation);
+window.addEventListener('resize', updateFicheroAccessLabel);
 
 let deferredInstallPrompt = null;
 
@@ -68,7 +70,16 @@ function resetFicheroAccess(){
   ficheroAccess.disabled = false;
   ficheroAccess.classList.remove('location-checking');
   ficheroAccess.querySelector('span:first-child').textContent = '🔒';
-  ficheroAccess.querySelector('span:last-child').textContent = 'Fichero';
+  updateFicheroAccessLabel();
+}
+
+function updateFicheroAccessLabel(){
+  if(!ficheroAccess || ficheroAccess.disabled) return;
+  const desktop = window.matchMedia('(min-width: 981px)').matches;
+  ficheroAccess.querySelector('span:last-child').textContent = desktop ? 'Disponibles' : 'Fichero';
+  ficheroAccess.title = desktop
+    ? 'Verificar ubicación para consultar el personal disponible'
+    : 'Verificar ubicación para acceder al Fichero';
 }
 
 function distanceInMeters(lat1, lon1, lat2, lon2){

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>En central | Bomberos Pergamino</title>
+  <title>Disponibles | Bomberos Pergamino</title>
   <style>
     :root{
       --navy:#062f45;
@@ -168,6 +168,8 @@
       gap:10px;
       flex-wrap:wrap;
     }
+    .refreshBtn{cursor:pointer;font:inherit}
+    .refreshBtn:disabled{cursor:wait;opacity:.65}
 
     .badge{
       padding:8px 12px;
@@ -405,8 +407,7 @@
       </div>
 
       <nav class="tabs" aria-label="Navegación">
-        <a class="tab" href="index.html">📌 FICHERO</a>
-        <a class="tab active" href="central.html">👥 EN CENTRAL</a>
+        <a class="tab active" href="central.html">👥 DISPONIBLES</a>
         <a class="tab" href="reporte.html">📄 REPORTE</a>
       </nav>
     </aside>
@@ -424,6 +425,7 @@
           <div class="topBadges">
             <div class="badge" id="count">Cargando…</div>
             <div class="badge" id="updated">Actualizando…</div>
+            <button class="badge refreshBtn" id="refreshButton" type="button">↻ Actualizar</button>
           </div>
         </div>
 
@@ -598,6 +600,9 @@
     const count = document.getElementById("count");
     const updated = document.getElementById("updated");
     const cards = document.getElementById("cards");
+    const refreshButton = document.getElementById("refreshButton");
+    refreshButton.disabled = true;
+    refreshButton.textContent = "Actualizando…";
 
     try{
       const res = await fetch(`${ENDPOINT}?action=dentro`, { cache:"no-store" });
@@ -613,7 +618,7 @@
         return;
       }
 
-      count.textContent = `Dentro: ${json.count}`;
+      count.textContent = `Disponibles: ${json.count}`;
       updated.textContent = `Actualizado: ${formatUpdateNow()}`;
       renderCards(json.data || []);
     }catch(err){
@@ -623,9 +628,13 @@
           Error de red: ${esc(String(err))}
         </div>
       `;
+    }finally{
+      refreshButton.disabled = false;
+      refreshButton.textContent = "↻ Actualizar";
     }
   }
 
+  document.getElementById("refreshButton").addEventListener("click", loadCentral);
   loadCentral();
   setInterval(loadCentral, 15000);
 </script>

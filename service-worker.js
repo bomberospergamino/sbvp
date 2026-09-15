@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v35-legajo-recordado';
+const CACHE_NAME = 'sbvp-home-v36-disponibles';
 const APP_SHELL = [
   './',
   './index.html',
