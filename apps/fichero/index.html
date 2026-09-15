@@ -237,35 +237,6 @@
     .clock .time{ font-weight:950; font-size: 18px; margin-top: 2px; }
     .clock .tz{ font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-    .calHead{
-      display:flex; justify-content:space-between; align-items:center; gap:10px;
-      margin-bottom: 8px;
-    }
-    .calTitle{
-      font-weight:950;
-      letter-spacing:.8px;
-      text-transform:uppercase;
-      font-size: 13px;
-      margin:0;
-    }
-    .calToday{
-      font-size: 12px;
-      color: var(--muted);
-      white-space:nowrap;
-    }
-    .calList{
-      margin:0;
-      padding-left: 16px;
-      color: rgba(255,255,255,.90);
-      font-size: 13px;
-      line-height:1.45;
-    }
-    .calEmpty{
-      color: var(--muted);
-      font-size: 13px;
-      margin: 0;
-    }
-
     .footerText{
       position: fixed;
       left: 0; right: 0;
@@ -343,24 +314,15 @@
         <div class="tz">Argentina (AR)</div>
       </div>
 
-      <div class="card" aria-live="polite">
-        <div class="calHead">
-          <div class="calTitle">CALENDARIO</div>
-          <div class="calToday" id="calToday">—</div>
-        </div>
-
-        <p class="calEmpty" id="calEmpty">Sin recordatorios para hoy.</p>
-        <ul class="calList" id="calList" style="display:none;"></ul>
-      </div>
     </aside>
   </div>
 
   <div class="footerText">Sociedad Bomberos Voluntarios Pergamino</div>
 
 <script>
-    const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
   const TZ = "America/Argentina/Buenos_Aires";
-  const ENDPOINT_CAL = "https://script.google.com/macros/s/AKfycbxI1YYEKCwVon5SwCxRxrmUg5ZYJ3JGKqlP0G53Ubr4gRshs-IUYA7Z_XIO0HDUhn7xew/exec";
+  const LEGAJO_STORAGE_KEY = "sbvpFicheroLegajo";
   const FICHAJE_RADIUS_METERS = 200;
   const FICHAJE_POINTS = [
     { name:"Cuartel Central", address:"Castelli 1231", latitude:-33.8967915, longitude:-60.5823517 },
@@ -371,7 +333,6 @@
   // Clock AR
   const fmtDate = new Intl.DateTimeFormat("es-AR", { timeZone: TZ, weekday:"long", year:"numeric", month:"2-digit", day:"2-digit" });
   const fmtTime = new Intl.DateTimeFormat("es-AR", { timeZone: TZ, hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false });
-  const fmtShort = new Intl.DateTimeFormat("es-AR", { timeZone: TZ, day:"2-digit", month:"2-digit" });
 
   function tick(){
     const now = new Date();
@@ -379,65 +340,7 @@
     const t = fmtTime.format(now);
     document.getElementById("dateStr").textContent = d.charAt(0).toUpperCase() + d.slice(1);
     document.getElementById("timeStr").textContent = t;
-    document.getElementById("calToday").textContent = fmtShort.format(now);
   }
-function ymdInTZ(){
-  // YYYY-MM-DD en timezone AR
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ, year:"numeric", month:"2-digit", day:"2-digit"
-  }).formatToParts(new Date());
-  const y = parts.find(p=>p.type==="year").value;
-  const m = parts.find(p=>p.type==="month").value;
-  const d = parts.find(p=>p.type==="day").value;
-  return `${y}-${m}-${d}`;
-}
-
-function iconForTipo(tipo){
-  const t = (tipo || "").trim().toLowerCase();
-  if (t === "cumpleaños" || t === "cumpleanos") return "🎂";
-  if (t.includes("reun")) return "📅";
-  if (t.includes("guardia")) return "🧑‍🚒";
-  return "📌";
-}
-
-async function loadCalendar(){
-  const ymd = ymdInTZ();
-
-  const $empty = document.getElementById("calEmpty");
-  const $list  = document.getElementById("calList");
-
-  try{
-    const url = `${ENDPOINT_CAL}?action=calendario&date=${encodeURIComponent(ymd)}`;
-    const res = await fetch(url, { cache:"no-store" });
-    const j = await res.json();
-
-    if(!j.ok) throw new Error(j.error || "Error calendario");
-
-    if(!j.items || j.items.length === 0){
-      $list.style.display = "none";
-      $empty.style.display = "block";
-      $empty.textContent = "Sin recordatorios para hoy.";
-      return;
-    }
-
-    $list.innerHTML = "";
-    for(const it of j.items){
-      const li = document.createElement("li");
-      li.textContent = `${iconForTipo(it.tipo)} ${it.mensaje}`;
-      $list.appendChild(li);
-    }
-
-    $empty.style.display = "none";
-    $list.style.display = "block";
-
-  }catch(err){
-    $list.style.display = "none";
-    $empty.style.display = "block";
-    $empty.textContent = "No se pudo cargar el calendario.";
-    // Si querés debug visual:
-    // console.error(err);
-  }
-}
   tick();
   setInterval(tick, 1000);
 
@@ -455,7 +358,17 @@ async function loadCalendar(){
     $toast.style.display = "block";
     setTimeout(()=>{ $toast.style.display = "none"; }, 4200);
   }
-  function cleanLegajo(){ $legajo.value=""; $legajo.focus(); }
+  function preserveLegajo(){
+    localStorage.setItem(LEGAJO_STORAGE_KEY, ($legajo.value || "").trim());
+    $legajo.focus();
+    $legajo.select();
+  }
+
+  $legajo.value = localStorage.getItem(LEGAJO_STORAGE_KEY) || "";
+  $legajo.addEventListener("input", () => {
+    $legajo.value = $legajo.value.replace(/\D/g, "");
+    localStorage.setItem(LEGAJO_STORAGE_KEY, $legajo.value);
+  });
 
   $legajo.addEventListener("keydown", (e)=>{
     if(e.key==="Enter"){
@@ -559,7 +472,7 @@ async function loadCalendar(){
     })();
 
     // liberar YA
-    cleanLegajo();
+    preserveLegajo();
     setBusy(false);
     showToast("Registro enviado…", "ok");
 
@@ -578,8 +491,6 @@ async function loadCalendar(){
 
 window.addEventListener("load", ()=>{
   $legajo.focus();
-  loadCalendar();
-  setInterval(loadCalendar, 60000); // refresca cada 60s
 }); 
 </script>
 </body>
