@@ -452,6 +452,8 @@
 <script>
   const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
   const TZ = "America/Argentina/Buenos_Aires";
+  const pendingExits = new Map();
+  let latestRequest = 0;
 
   const fmtDate = new Intl.DateTimeFormat("es-AR", {
     timeZone: TZ,
@@ -603,6 +605,7 @@
   }
 
   async function loadCentral(){
+    const requestId = ++latestRequest;
     const count = document.getElementById("count");
     const updated = document.getElementById("updated");
     const cards = document.getElementById("cards");
@@ -611,8 +614,10 @@
     refreshButton.textContent = "Actualizando…";
 
     try{
-      const res = await fetch(`${ENDPOINT}?action=dentro`, { cache:"no-store" });
+      const res = await fetch(`${ENDPOINT}?action=dentro&_=${Date.now()}`, { cache:"no-store" });
       const json = await res.json();
+
+      if(requestId !== latestRequest) return;
 
       if(!json.ok){
         count.textContent = "Error";
@@ -624,9 +629,17 @@
         return;
       }
 
-      count.textContent = `Disponibles: ${json.count}`;
+      const serverData = Array.isArray(json.data) ? json.data : [];
+      const serverLegajos = new Set(serverData.map(person => String(person.legajo || "").trim()));
+      const now = Date.now();
+      for(const [legajo, registeredAt] of pendingExits){
+        if(!serverLegajos.has(legajo) || now - registeredAt > 15000) pendingExits.delete(legajo);
+      }
+      const visibleData = serverData.filter(person => !pendingExits.has(String(person.legajo || "").trim()));
+
+      count.textContent = `Disponibles: ${visibleData.length}`;
       updated.textContent = `Actualizado: ${formatUpdateNow()}`;
-      renderCards(json.data || []);
+      renderCards(visibleData);
     }catch(err){
       count.textContent = "Error";
       cards.innerHTML = `
@@ -641,13 +654,24 @@
   }
 
   document.getElementById("refreshButton").addEventListener("click", loadCentral);
+  function applyMovementUpdate(update){
+    if(!update || update.type !== "fichada-guardada") return;
+    const legajo = String(update.legajo || "").trim();
+    if(update.movimiento === "SALIDA" && legajo) pendingExits.set(legajo, Number(update.at) || Date.now());
+    if(update.movimiento === "INGRESO" && legajo) pendingExits.delete(legajo);
+    loadCentral();
+    setTimeout(loadCentral, 700);
+    setTimeout(loadCentral, 1800);
+  }
   window.addEventListener("storage", event => {
-    if(event.key === "sbvpFicheroUpdatedAt") loadCentral();
+    if(event.key === "sbvpFicheroLastMovement"){
+      try{ applyMovementUpdate(JSON.parse(event.newValue)); }catch(_error){ loadCentral(); }
+    }else if(event.key === "sbvpFicheroUpdatedAt") loadCentral();
   });
   if("BroadcastChannel" in window){
     const ficheroChannel = new BroadcastChannel("sbvp-fichero");
     ficheroChannel.addEventListener("message", event => {
-      if(event.data?.type === "fichada-guardada") loadCentral();
+      applyMovementUpdate(event.data);
     });
   }
   loadCentral();

@@ -485,9 +485,11 @@
         showToast(`Error: ${j.error || "desconocido"}`, "err");
       }else{
         localStorage.setItem("sbvpFicheroUpdatedAt", String(Date.now()));
+        const movementUpdate = {type:"fichada-guardada", movimiento, legajo, at:Date.now()};
+        localStorage.setItem("sbvpFicheroLastMovement", JSON.stringify(movementUpdate));
         if("BroadcastChannel" in window){
           const channel = new BroadcastChannel("sbvp-fichero");
-          channel.postMessage({type:"fichada-guardada"});
+          channel.postMessage(movementUpdate);
           channel.close();
         }
         showSavedConfirmation(`${movimiento} · ${point.name}`);
