@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v42-actualizacion-red';
+const CACHE_NAME = 'sbvp-home-v43-reloj-horizontal';
 const APP_SHELL = [
   './',
   './index.html',
