@@ -258,7 +258,7 @@
       .right .card{ width:100%; }
     }
   </style>
-  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-visual-38">
+  <link rel="stylesheet" href="sbvp-theme.css?v=fichero-nav-39">
 </head>
 
 <body class="fichero-page">
@@ -320,6 +320,8 @@
   </div>
 
 <script>
+  if(window.matchMedia("(min-width: 981px)").matches) window.location.replace("central.html");
+
   const ENDPOINT = "https://script.google.com/macros/s/AKfycbzD7T_2U2JlsxJFTwNL_fUdijwe2O1qjQ24a73rbj443lmRrE-xS0mQRGrY2ux3Yd4/exec";
   const TZ = "America/Argentina/Buenos_Aires";
   const LEGAJO_STORAGE_KEY = "sbvpFicheroLegajo";

@@ -38,6 +38,7 @@ body{
 .footerText{color:var(--muted)!important}
 .location-row{font-weight:850;color:var(--navy)}
 .desktop-only-fichero{display:block}
+.mobile-nav-only{display:none!important}
 
 .fichero-page #legajo,
 .report-page input{
@@ -121,6 +122,8 @@ body{
 
 @media(max-width:980px){
   .desktop-only-fichero{display:none!important}
+  .desktop-nav-only{display:none!important}
+  .mobile-nav-only{display:flex!important}
   .screen{padding:12px!important}
   .fichero-page .screen{display:block!important}
   .fichero-page .left{display:flex!important;flex-direction:column!important;align-items:center!important;margin-bottom:14px}
