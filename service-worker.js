@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v46-logo-inicio';
+const CACHE_NAME = 'sbvp-home-v47-tranqueras';
 const APP_SHELL = [
   './',
   './index.html',
@@ -15,6 +15,11 @@ const APP_SHELL = [
   './apps/agenda/styles.css',
   './apps/agenda/config.js',
   './apps/agenda/app.js',
+  './apps/tranqueras/',
+  './apps/tranqueras/index.html',
+  './apps/tranqueras/styles.css',
+  './apps/tranqueras/config.js',
+  './apps/tranqueras/app.js',
   './apps/fichero/sbvp-theme.css'
 ];
 
