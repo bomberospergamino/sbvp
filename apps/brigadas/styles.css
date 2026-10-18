@@ -393,12 +393,13 @@ p { color: var(--muted); margin-top: 4px; }
 
 .attendance-header-fields {
   display: grid;
-  grid-template-columns: minmax(180px, .45fr) minmax(280px, 1.55fr);
+  grid-template-columns: minmax(160px, .4fr) minmax(230px, .75fr) minmax(190px, .55fr) minmax(240px, 1fr);
   gap: 14px;
   align-items: end;
 }
 
 .attendance-field input,
+.attendance-field select,
 .attendance-field textarea {
   width: 100%;
   border: 1px solid #bdb5a6;
@@ -418,11 +419,113 @@ p { color: var(--muted); margin-top: 4px; }
   padding: 0 14px;
 }
 
+.compliance-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.compliance-toolbar label {
+  display: grid;
+  gap: 5px;
+  min-width: 120px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.compliance-toolbar select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.compliance-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.compliance-card {
+  display: grid;
+  grid-template-columns: 142px 1fr;
+  align-items: center;
+  gap: 18px;
+  min-height: 188px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #f8fbfd;
+}
+
+.donut-chart {
+  width: 138px;
+  height: 138px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--chart-color, #16824b) calc(var(--value, 0) * 1%), #dfe7ec 0);
+  position: relative;
+}
+
+.donut-chart::before {
+  content: "";
+  width: 94px;
+  height: 94px;
+  border-radius: 50%;
+  background: #fff;
+  position: absolute;
+}
+
+.donut-chart strong {
+  position: relative;
+  z-index: 1;
+  font-size: 25px;
+  color: var(--navy);
+}
+
+.compliance-copy h3 { margin: 0 0 6px; color: var(--navy); }
+.compliance-copy p { margin: 0 0 8px; line-height: 1.4; }
+.compliance-copy small { color: var(--muted); font-weight: 700; }
+.month-status-title { margin: 0 0 10px; color: var(--navy); }
+
+.compliance-months {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.month-status {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-left: 5px solid #aab5bd;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.month-status strong, .month-status span { display: block; }
+.month-status span { margin-top: 3px; color: var(--muted); font-size: 12px; }
+.month-status.complete { border-left-color: #16824b; background: #f0faf5; }
+.month-status.pending { border-left-color: #d5443f; background: #fff5f4; }
+.month-status.future { opacity: .62; }
+
 @media (max-width: 680px) {
   .attendance-header-fields {
     grid-template-columns: 1fr;
     gap: 0;
   }
+
+  .compliance-toolbar { align-items: stretch; flex-direction: column; }
+  .compliance-charts { grid-template-columns: 1fr; }
+  .compliance-card { grid-template-columns: 112px 1fr; padding: 14px; }
+  .donut-chart { width: 108px; height: 108px; }
+  .donut-chart::before { width: 72px; height: 72px; }
+  .donut-chart strong { font-size: 20px; }
+  .compliance-months { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
 }
 
 .simple-list {

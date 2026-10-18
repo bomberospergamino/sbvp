@@ -497,6 +497,7 @@ function registrarAsistencia_(params) {
     ensureSheet_(ss, 'DETALLE_ASISTENCIAS', BRIGADAS_SHEETS.DETALLE_ASISTENCIAS);
     const attendanceSheet = ss.getSheetByName('ASISTENCIAS');
     const detailSheet = ss.getSheetByName('DETALLE_ASISTENCIAS');
+    const meetingSheet = ss.getSheetByName('ENCUENTROS');
     const attendanceId = String(params.id_asistencia || '').trim();
     if (!attendanceId) throw new Error('Falta id_asistencia');
     if (findRowById_(attendanceSheet, 'id_asistencia', attendanceId)) {
@@ -506,14 +507,56 @@ function registrarAsistencia_(params) {
     if (typeof details === 'string') details = JSON.parse(details || '[]');
     if (!Array.isArray(details) || !details.length) throw new Error('Falta el detalle de asistencias');
     const date = params.fecha || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    let meetingId = String(params.id_encuentro || '').trim();
+    let meetingRow = meetingId ? findRowById_(meetingSheet, 'id_encuentro', meetingId) : 0;
+    if (!meetingRow && meetingSheet) {
+      const meetingHeaders = getHeaderMap_(meetingSheet);
+      const lastMeetingRow = meetingSheet.getLastRow();
+      if (lastMeetingRow >= 2 && meetingHeaders.fecha && meetingHeaders.id_brigada) {
+        const meetingValues = meetingSheet.getRange(2, 1, lastMeetingRow - 1, meetingSheet.getLastColumn()).getDisplayValues();
+        const headerRow = meetingSheet.getRange(1, 1, 1, meetingSheet.getLastColumn()).getDisplayValues()[0].map(normalizeHeader_);
+        const dateIndex = headerRow.indexOf('fecha');
+        const brigadeIndex = headerRow.indexOf('id_brigada');
+        const idIndex = headerRow.indexOf('id_encuentro');
+        const typeIndex = headerRow.indexOf('tipo_encuentro');
+        const requestedType = normalizeHeader_(params.tipo_encuentro || 'Obligatorio mensual');
+        const requestedIsExtra = requestedType.indexOf('extra') >= 0;
+        const foundIndex = meetingValues.findIndex((row) => {
+          const rowIsExtra = typeIndex >= 0 && normalizeHeader_(row[typeIndex] || '').indexOf('extra') >= 0;
+          const sameType = typeIndex < 0 || rowIsExtra === requestedIsExtra;
+          return String(row[dateIndex]).slice(0, 10) === String(date).slice(0, 10)
+            && String(row[brigadeIndex]) === String(params.id_brigada || '')
+            && sameType;
+        });
+        if (foundIndex >= 0) {
+          meetingRow = foundIndex + 2;
+          meetingId = String(meetingValues[foundIndex][idIndex] || '');
+        }
+      }
+    }
+    if (!meetingRow && meetingSheet) {
+      meetingId = `enc_${Utilities.getUuid()}`;
+      meetingRow = appendObjectRow_(meetingSheet, {
+        id_encuentro: meetingId,
+        fecha: date,
+        mes_periodo: params.mes_periodo || date.slice(0, 7),
+        id_brigada: params.id_brigada || '',
+        brigada: params.brigada || '',
+        tipo_encuentro: params.tipo_encuentro || 'Obligatorio mensual',
+        tema: params.tema || '',
+        estado: 'Realizado',
+        observaciones: params.observaciones_generales || '',
+        id_asistencia: attendanceId,
+      });
+    }
     appendObjectRow_(attendanceSheet, {
       id_asistencia: attendanceId,
-      id_encuentro: params.id_encuentro || '',
+      id_encuentro: meetingId,
       fecha: date,
       mes_periodo: params.mes_periodo || date.slice(0, 7),
       id_brigada: params.id_brigada || '',
       brigada: params.brigada || '',
-      tipo_actividad: params.tipo_actividad || 'Capacitación',
+      tipo_actividad: params.tipo_actividad || params.tipo_encuentro || 'Obligatorio mensual',
       responsable: params.responsable || '',
       observaciones_generales: params.observaciones_generales || '',
       creado_por: Session.getActiveUser().getEmail() || 'web',
@@ -531,10 +574,15 @@ function registrarAsistencia_(params) {
       estado_asistencia: detail.estado_asistencia || '',
       observacion_individual: detail.observacion_individual || '',
     }));
+    if (meetingRow && meetingSheet) {
+      const meetingHeaders = getHeaderMap_(meetingSheet);
+      if (meetingHeaders.id_asistencia) meetingSheet.getRange(meetingRow, meetingHeaders.id_asistencia).setValue(attendanceId);
+      if (meetingHeaders.estado) meetingSheet.getRange(meetingRow, meetingHeaders.estado).setValue('Realizado');
+    }
     formatSheet_(attendanceSheet);
     formatSheet_(detailSheet);
     SpreadsheetApp.flush();
-    return { id_asistencia: attendanceId, saved: true, details: details.length };
+    return { id_asistencia: attendanceId, id_encuentro: meetingId, saved: true, details: details.length };
   });
 }
 

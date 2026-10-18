@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-asistencia-fecha-25';
+const APP_VERSION = 'brigadas-cumplimiento-27';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -95,6 +95,9 @@ function bindEvents() {
   document.getElementById('membersDownloadButton').addEventListener('click', descargarIntegrantesBrigada);
   document.getElementById('downloadLogoButton').addEventListener('click', descargarLogoBrigada);
   document.getElementById('saveAttendanceButton').addEventListener('click', () => generarPDFAsistencia(true));
+  document.getElementById('attendanceDate').addEventListener('change', syncAttendanceMeetingFromDate);
+  document.getElementById('attendanceMeeting').addEventListener('change', syncAttendanceFormFromMeeting);
+  document.getElementById('brigadeComplianceYear').addEventListener('change', renderBrigadeCompliance);
   document.getElementById('saveEquipmentCheckButton').addEventListener('click', generarPDFCheckEquipamiento);
   document.getElementById('downloadEquipmentPdfButton').addEventListener('click', () => generarPDFCheckEquipamiento(false));
   document.getElementById('downloadEquipmentExcelButton').addEventListener('click', descargarEquipamientoExcel);
@@ -307,6 +310,9 @@ function renderAll() {
   renderNavigation();
   renderBrigades();
   renderMembers();
+  setupAttendanceMeetings();
+  setupBrigadeComplianceYears();
+  renderBrigadeCompliance();
   if (!document.getElementById('brigadeDetail')?.classList.contains('hidden')) {
     renderEquipment();
     renderCertificates();
@@ -373,10 +379,14 @@ function renderBrigades() {
       if (state.selectedBrigade !== brigade.id_brigada) {
         document.getElementById('attendanceTopic').value = '';
         document.getElementById('attendanceNotes').value = '';
+        document.getElementById('attendanceType').value = 'Obligatorio mensual';
       }
       state.selectedBrigade = brigade.id_brigada;
       renderBrigades();
       renderMembers();
+      setupAttendanceMeetings();
+      setupBrigadeComplianceYears();
+      renderBrigadeCompliance();
       renderEquipment();
       renderCertificates();
       renderBibliography();
@@ -427,6 +437,7 @@ function openBrigadePanel(panelId) {
   if (panelId === 'attendancePanel' && !document.getElementById('attendanceDate').value) {
     document.getElementById('attendanceDate').value = formatDateInput(new Date());
   }
+  if (panelId === 'compliancePanel') renderBrigadeCompliance();
   if (panelId === 'equipmentPanel') renderEquipment();
   if (panelId === 'certificatesPanel') renderCertificates();
   if (panelId === 'bibliographyPanel') renderBibliography();
@@ -701,6 +712,130 @@ function setupScheduleOptions() {
   select.add(new Option(GENERAL_MEETING_GROUP.nombre_brigada, GENERAL_MEETING_GROUP.id_brigada));
   getBrigadasActivas().forEach((item) => select.add(new Option(item.nombre_brigada, item.id_brigada)));
   select.value = current;
+}
+
+function setupAttendanceMeetings() {
+  const select = document.getElementById('attendanceMeeting');
+  if (!select) return;
+  const current = select.value;
+  const meetings = getAllMeetings()
+    .filter((meeting) => meeting.id_brigada === state.selectedBrigade)
+    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  select.innerHTML = '<option value="">Sin asociar a un encuentro</option>';
+  meetings.forEach((meeting) => {
+    const label = [formatDateDisplay(meeting.fecha), meeting.tema || 'Encuentro mensual', meeting.estado || ''].filter(Boolean).join(' · ');
+    select.add(new Option(label, meeting.id_encuentro || ''));
+  });
+  if (meetings.some((meeting) => meeting.id_encuentro === current)) select.value = current;
+  else syncAttendanceMeetingFromDate();
+}
+
+function syncAttendanceMeetingFromDate() {
+  const date = document.getElementById('attendanceDate').value;
+  const select = document.getElementById('attendanceMeeting');
+  const match = getAllMeetings().find((meeting) => meeting.id_brigada === state.selectedBrigade && formatDateInput(meeting.fecha) === date);
+  select.value = match?.id_encuentro || '';
+  if (match) document.getElementById('attendanceType').value = normalizeState(match.tipo_encuentro).includes('extra') ? 'Encuentro extra' : 'Obligatorio mensual';
+  if (match && !document.getElementById('attendanceTopic').value.trim()) document.getElementById('attendanceTopic').value = match.tema || '';
+}
+
+function syncAttendanceFormFromMeeting() {
+  const meeting = findMeetingById(document.getElementById('attendanceMeeting').value);
+  if (!meeting) return;
+  document.getElementById('attendanceDate').value = formatDateInput(meeting.fecha);
+  document.getElementById('attendanceType').value = normalizeState(meeting.tipo_encuentro).includes('extra') ? 'Encuentro extra' : 'Obligatorio mensual';
+  if (!document.getElementById('attendanceTopic').value.trim()) document.getElementById('attendanceTopic').value = meeting.tema || '';
+}
+
+function setupBrigadeComplianceYears() {
+  const select = document.getElementById('brigadeComplianceYear');
+  if (!select) return;
+  const current = select.value || String(new Date().getFullYear());
+  const years = new Set(getAvailableYears().map(String));
+  years.add(String(new Date().getFullYear()));
+  select.innerHTML = '';
+  [...years].sort((a, b) => Number(b) - Number(a)).forEach((year) => select.add(new Option(year, year)));
+  select.value = years.has(current) ? current : String(new Date().getFullYear());
+}
+
+function getAttendanceRowsForBrigade(idBrigada, from, to) {
+  const fromDate = parseDate(from);
+  const toDate = parseDate(to);
+  return (state.sheets.ASISTENCIAS || []).map(normalizeRow).filter((row) => {
+    const date = parseDate(row.fecha);
+    return row.id_brigada === idBrigada && date && date >= fromDate && date <= toDate && normalizeState(row.estado_registro || 'cerrado') !== 'anulado';
+  });
+}
+
+function meetingHasAttendance(meeting, attendanceRows) {
+  return Boolean(meeting.id_asistencia) || attendanceRows.some((row) =>
+    (row.id_encuentro && row.id_encuentro === meeting.id_encuentro)
+    || (!row.id_encuentro && formatDateInput(row.fecha) === formatDateInput(meeting.fecha))
+  );
+}
+
+function getBrigadeAnnualCompliance(idBrigada, year) {
+  const numericYear = Number(year);
+  const now = new Date();
+  const expectedMonths = numericYear < now.getFullYear() ? 12 : numericYear === now.getFullYear() ? now.getMonth() + 1 : 0;
+  const from = `${year}-01-01`, to = `${year}-12-31`;
+  const meetings = getEncuentrosRango(from, to).filter((meeting) => meeting.id_brigada === idBrigada);
+  const attendanceRows = getAttendanceRowsForBrigade(idBrigada, from, to);
+  const details = (state.sheets.DETALLE_ASISTENCIAS || []).map(normalizeRow)
+    .filter((row) => attendanceRows.some((attendance) => attendance.id_asistencia === row.id_asistencia));
+  const present = details.filter((row) => normalizeState(row.estado_asistencia) === 'p').length;
+  const absent = details.filter((row) => normalizeState(row.estado_asistencia) === 'a').length;
+  const justified = details.filter((row) => normalizeState(row.estado_asistencia) === 'just.').length;
+  const totalAttendance = present + absent + justified;
+  const months = Array.from({ length: 12 }, (_, index) => {
+    const monthKeyValue = `${year}-${String(index + 1).padStart(2, '0')}`;
+    const monthMeetings = meetings.filter((meeting) => (meeting.mes_periodo || monthKey(parseDate(meeting.fecha))) === monthKeyValue);
+    const mandatoryMeetings = monthMeetings.filter((meeting) => !normalizeState(meeting.tipo_encuentro).includes('extra'));
+    const extraMeetings = monthMeetings.filter((meeting) => normalizeState(meeting.tipo_encuentro).includes('extra'));
+    const compliant = mandatoryMeetings.some((meeting) => normalizeState(meeting.estado) === 'realizado' && meetingHasAttendance(meeting, attendanceRows));
+    const completedExtras = extraMeetings.filter((meeting) => normalizeState(meeting.estado) === 'realizado' && meetingHasAttendance(meeting, attendanceRows)).length;
+    return { index, monthKey: monthKeyValue, meetings: monthMeetings, compliant, completedExtras, extraMeetings: extraMeetings.length, evaluated: index < expectedMonths };
+  });
+  const completedMonths = months.filter((month) => month.evaluated && month.compliant).length;
+  const evaluatedExtras = months.filter((month) => month.evaluated).reduce((total, month) => total + month.extraMeetings, 0);
+  const completedExtras = months.filter((month) => month.evaluated).reduce((total, month) => total + month.completedExtras, 0);
+  const expectedMeetings = expectedMonths + evaluatedExtras;
+  const completedMeetings = completedMonths + completedExtras;
+  return {
+    expectedMonths,
+    completedMonths,
+    expectedMeetings,
+    completedMeetings,
+    completedExtras,
+    meetingPercent: expectedMeetings ? Math.round((completedMeetings / expectedMeetings) * 100) : 0,
+    attendanceRecords: attendanceRows.length,
+    present, absent, justified, totalAttendance,
+    attendancePercent: totalAttendance ? Math.round((present / totalAttendance) * 100) : 0,
+    months,
+  };
+}
+
+function renderBrigadeCompliance() {
+  const charts = document.getElementById('complianceCharts');
+  const monthsContainer = document.getElementById('complianceMonths');
+  if (!charts || !monthsContainer) return;
+  const year = document.getElementById('brigadeComplianceYear')?.value || String(new Date().getFullYear());
+  const summary = getBrigadeAnnualCompliance(state.selectedBrigade, year);
+  charts.innerHTML = `
+    ${donutCard('Encuentros cumplidos', summary.meetingPercent, `${summary.completedMeetings} de ${summary.expectedMeetings} encuentros esperados`, `${summary.completedExtras} extras cumplidos · Realizado + asistencia`, '#16824b')}
+    ${donutCard('Asistencia de integrantes', summary.attendancePercent, `${summary.present} presentes de ${summary.totalAttendance} registros`, `${summary.absent} ausentes · ${summary.justified} justificados`, '#1671a6')}
+  `;
+  const monthNames = Array.from({ length: 12 }, (_, index) => new Date(2000, index, 1).toLocaleDateString('es-AR', { month: 'short' }).replace('.', ''));
+  monthsContainer.innerHTML = summary.months.map((month) => {
+    const status = !month.evaluated ? 'future' : month.compliant ? 'complete' : 'pending';
+    const extrasText = month.completedExtras ? ` · ${month.completedExtras} extra${month.completedExtras === 1 ? '' : 's'}` : '';
+    const text = !month.evaluated ? 'Aún no evaluado' : month.compliant ? `Cumplido${extrasText}` : month.meetings.length ? `Falta obligatorio o asistencia${extrasText}` : 'Sin encuentro cumplido';
+    return `<article class="month-status ${status}"><strong>${escapeHtml(monthNames[month.index])}</strong><span>${escapeHtml(text)}</span></article>`;
+  }).join('');
+}
+
+function donutCard(title, percent, mainText, detailText, color) {
+  return `<article class="compliance-card"><div class="donut-chart" style="--value:${Math.max(0, Math.min(percent, 100))};--chart-color:${color}"><strong>${percent}%</strong></div><div class="compliance-copy"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(mainText)}</p><small>${escapeHtml(detailText)}</small></div></article>`;
 }
 
 function renderAdmin() {
@@ -1101,19 +1236,23 @@ function getBrigadasSinEncuentro(mes_periodo) {
 
 function calcularResumenAdmin(mes_periodo) {
   return getBrigadasActivas().map((brigade) => {
-    const validMeetings = getEncuentrosMes(mes_periodo).filter((meeting) => meeting.id_brigada === brigade.id_brigada && VALID_MEETING_STATES.has(normalizeState(meeting.estado)));
+    const monthMeetings = getEncuentrosMes(mes_periodo).filter((meeting) => meeting.id_brigada === brigade.id_brigada);
+    const [year, month] = mes_periodo.split('-').map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    const attendanceRows = getAttendanceRowsForBrigade(brigade.id_brigada, `${mes_periodo}-01`, `${mes_periodo}-${String(lastDay).padStart(2, '0')}`);
+    const compliantMeetings = monthMeetings.filter((meeting) => normalizeState(meeting.estado) === 'realizado' && meetingHasAttendance(meeting, attendanceRows));
     const attendance = calcularPorcentajeAsistencia(brigade.id_brigada, mes_periodo);
     const needs = getNecesidadesPendientes(brigade.id_brigada);
     const equipment = getEstadoEquipamiento(brigade.id_brigada, mes_periodo);
     let estado = 'OK';
-    if (!validMeetings.length || equipment.critical > 0) estado = 'Critico';
+    if (!compliantMeetings.length || equipment.critical > 0) estado = 'Critico';
     else if (attendance.total > 0 && attendance.percent < 75 || needs.pending > 0) estado = 'Observado';
     return {
       mes_periodo,
       id_brigada: brigade.id_brigada,
       brigada: brigade.nombre_brigada,
-      encuentros_validos_mes: validMeetings.length,
-      cumple_encuentro_mensual: validMeetings.length > 0,
+      encuentros_validos_mes: compliantMeetings.length,
+      cumple_encuentro_mensual: compliantMeetings.length > 0,
       cantidad_asistencias: attendance.records,
       total_convocados: attendance.total,
       total_presentes: attendance.present,
@@ -1135,14 +1274,16 @@ function calcularResumenAdmin(mes_periodo) {
 function calcularResumenAdminRango(from, to, expectedMonths = 1) {
   const meetings = getEncuentrosRango(from, to);
   return getBrigadasActivas().map((brigade) => {
-    const validMeetings = meetings.filter((meeting) => meeting.id_brigada === brigade.id_brigada && VALID_MEETING_STATES.has(normalizeState(meeting.estado)));
-    const realizedMeetings = meetings.filter((meeting) => meeting.id_brigada === brigade.id_brigada && normalizeState(meeting.estado) === 'realizado');
-    const coveredMonths = new Set(validMeetings.map((meeting) => meeting.mes_periodo || monthKey(parseDate(meeting.fecha))).filter(Boolean)).size;
+    const brigadeMeetings = meetings.filter((meeting) => meeting.id_brigada === brigade.id_brigada);
+    const attendanceRows = getAttendanceRowsForBrigade(brigade.id_brigada, from, to);
+    const realizedMeetings = brigadeMeetings.filter((meeting) => normalizeState(meeting.estado) === 'realizado');
+    const compliantMeetings = realizedMeetings.filter((meeting) => meetingHasAttendance(meeting, attendanceRows));
+    const coveredMonths = new Set(compliantMeetings.map((meeting) => meeting.mes_periodo || monthKey(parseDate(meeting.fecha))).filter(Boolean)).size;
     const attendance = calcularPorcentajeAsistenciaRango(brigade.id_brigada, from, to);
     const needs = getNecesidadesPendientes(brigade.id_brigada);
     const equipment = getEstadoEquipamientoRango(brigade.id_brigada, from, to);
     let estado = 'OK';
-    if (!validMeetings.length || equipment.critical > 0) estado = 'Critico';
+    if (!compliantMeetings.length || equipment.critical > 0) estado = 'Critico';
     else if (attendance.total > 0 && attendance.percent < 75 || needs.pending > 0) estado = 'Observado';
     return {
       id_brigada: brigade.id_brigada,
@@ -1436,7 +1577,9 @@ async function generarPDFAsistencia(includeLoaded) {
     return;
   }
   const trainingTopic = document.getElementById('attendanceTopic').value.trim();
+  const attendanceType = document.getElementById('attendanceType').value || 'Obligatorio mensual';
   const generalNotes = document.getElementById('attendanceNotes').value.trim();
+  const attendanceMeetingId = document.getElementById('attendanceMeeting').value;
   const attendanceDate = document.getElementById('attendanceDate').value;
   const parsedAttendanceDate = parseDate(attendanceDate);
   if (!attendanceDate || !parsedAttendanceDate) {
@@ -1475,6 +1618,8 @@ async function generarPDFAsistencia(includeLoaded) {
     doc.text(`Brigada ${brigade.nombre_brigada}`, 42, 20);
     doc.setFontSize(10);
     doc.text(parsedAttendanceDate.toLocaleDateString('es-AR'), 170, 20);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Tipo: ${attendanceType}`, 14, 29);
     const topicLines = doc.splitTextToSize(trainingTopic || 'Sin tema informado', 135);
     doc.setFont('helvetica', 'bold');
     doc.text('Tema de la capacitación:', 14, 34);
@@ -1531,7 +1676,7 @@ async function generarPDFAsistencia(includeLoaded) {
     const filename = `asistencia-${brigade.id_brigada}-${attendanceDate}.pdf`;
     const base64 = doc.output('datauristring').split(',')[1];
     setBrigadeActionStatus('PDF listo. Enviando a la carpeta de Drive de la brigada...');
-    await guardarReporteDrive({
+    const savedReport = await guardarReporteDrive({
       filename,
       mime_type: 'application/pdf',
       base64,
@@ -1540,16 +1685,21 @@ async function generarPDFAsistencia(includeLoaded) {
       tipo_reporte: 'asistencia',
       fecha: attendanceDate,
       tema: trainingTopic,
+      tipo_encuentro: attendanceType,
       observaciones: generalNotes,
     });
     await registrarAsistencia({
       id_asistencia: attendanceId,
+      id_encuentro: attendanceMeetingId,
       fecha: attendanceDate,
       mes_periodo: monthKey(attendanceDate),
       id_brigada: brigade.id_brigada,
       brigada: brigade.nombre_brigada,
-      tipo_actividad: trainingTopic || 'Capacitación',
+      tipo_actividad: attendanceType,
+      tipo_encuentro: attendanceType,
+      tema: trainingTopic,
       observaciones_generales: generalNotes,
+      pdf_url: savedReport?.url || '',
       detalles: attendanceDetails,
     });
     const shared = await downloadAndSharePdf(doc, filename, `Asistencia ${brigade.nombre_brigada}`);
@@ -1565,13 +1715,15 @@ async function generarPDFAsistencia(includeLoaded) {
 }
 
 async function guardarReporteDrive(payload) {
-  await postToAppsScript({ action: 'guardar_reporte', ...payload });
+  return postToAppsScript({ action: 'guardar_reporte', ...payload });
 }
 
 async function registrarAsistencia(payload) {
-  await postToAppsScript({ action: 'registrar_asistencia', ...payload, detalles: JSON.stringify(payload.detalles || []) });
+  const result = await postToAppsScript({ action: 'registrar_asistencia', ...payload, detalles: JSON.stringify(payload.detalles || []) });
+  const linkedMeetingId = result?.id_encuentro || payload.id_encuentro || '';
   const header = {
     id_asistencia: payload.id_asistencia,
+    id_encuentro: linkedMeetingId,
     fecha: payload.fecha,
     mes_periodo: payload.mes_periodo,
     id_brigada: payload.id_brigada,
@@ -1585,6 +1737,24 @@ async function registrarAsistencia(payload) {
     ...(state.sheets.DETALLE_ASISTENCIAS || []),
     ...(payload.detalles || []).map((detail) => ({ ...detail, id_asistencia: payload.id_asistencia })),
   ];
+  if (linkedMeetingId) {
+    const meetingExists = (state.sheets.ENCUENTROS || []).some((meeting) => normalizeRow(meeting).id_encuentro === linkedMeetingId);
+    state.sheets.ENCUENTROS = (state.sheets.ENCUENTROS || []).map((meeting) => normalizeRow(meeting).id_encuentro === linkedMeetingId
+      ? { ...meeting, estado: 'Realizado', id_asistencia: payload.id_asistencia }
+      : meeting);
+    if (!meetingExists) state.sheets.ENCUENTROS.push({
+      id_encuentro: linkedMeetingId,
+      fecha: payload.fecha,
+      mes_periodo: payload.mes_periodo,
+      id_brigada: payload.id_brigada,
+      brigada: payload.brigada,
+      tipo_encuentro: payload.tipo_encuentro,
+      tema: payload.tema,
+      estado: 'Realizado',
+      id_asistencia: payload.id_asistencia,
+    });
+  }
+  renderBrigadeCompliance();
   renderAdmin();
   setTimeout(loadGoogleSheet, 2500);
 }
@@ -1870,6 +2040,11 @@ function sameDay(a, b) {
 
 function brigadeName(id) {
   return getMeetingGroup(id)?.nombre_brigada || id || 'Brigada';
+}
+
+function formatDateDisplay(value) {
+  const date = parseDate(value);
+  return date ? date.toLocaleDateString('es-AR') : '';
 }
 
 function getMeetingGroup(id) {
