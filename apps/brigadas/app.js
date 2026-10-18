@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-encuentros-generales-24';
+const APP_VERSION = 'brigadas-asistencia-fecha-25';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -59,6 +59,7 @@ const state = {
 
 document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
+  document.getElementById('attendanceDate').value = formatDateInput(new Date());
   renderAll();
   loadGoogleSheet();
   startCalendarSync();
@@ -423,6 +424,9 @@ function renderMembers() {
 }
 
 function openBrigadePanel(panelId) {
+  if (panelId === 'attendancePanel' && !document.getElementById('attendanceDate').value) {
+    document.getElementById('attendanceDate').value = formatDateInput(new Date());
+  }
   if (panelId === 'equipmentPanel') renderEquipment();
   if (panelId === 'certificatesPanel') renderCertificates();
   if (panelId === 'bibliographyPanel') renderBibliography();
@@ -1433,6 +1437,13 @@ async function generarPDFAsistencia(includeLoaded) {
   }
   const trainingTopic = document.getElementById('attendanceTopic').value.trim();
   const generalNotes = document.getElementById('attendanceNotes').value.trim();
+  const attendanceDate = document.getElementById('attendanceDate').value;
+  const parsedAttendanceDate = parseDate(attendanceDate);
+  if (!attendanceDate || !parsedAttendanceDate) {
+    alert('Seleccioná la fecha de la asistencia antes de generar el PDF.');
+    document.getElementById('attendanceDate').focus();
+    return;
+  }
   const attendanceDetails = members.map((person, index) => ({
     legajo: person.legajo || '',
     apellido: person.apellido || '',
@@ -1447,7 +1458,6 @@ async function generarPDFAsistencia(includeLoaded) {
     return;
   }
   const attendanceId = window.crypto?.randomUUID ? `asis_${window.crypto.randomUUID()}` : `asis_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-  const attendanceDate = formatDateInput(new Date());
   setButtonLoading('saveAttendanceButton', true, 'Generando PDF...');
   setBrigadeActionStatus('Generando PDF de asistencia...');
   try {
@@ -1464,7 +1474,7 @@ async function generarPDFAsistencia(includeLoaded) {
     doc.setFontSize(16);
     doc.text(`Brigada ${brigade.nombre_brigada}`, 42, 20);
     doc.setFontSize(10);
-    doc.text(new Date().toLocaleDateString('es-AR'), 170, 20);
+    doc.text(parsedAttendanceDate.toLocaleDateString('es-AR'), 170, 20);
     const topicLines = doc.splitTextToSize(trainingTopic || 'Sin tema informado', 135);
     doc.setFont('helvetica', 'bold');
     doc.text('Tema de la capacitación:', 14, 34);
@@ -1518,7 +1528,7 @@ async function generarPDFAsistencia(includeLoaded) {
       doc.line(14, signatureY, 78, signatureY);
       doc.line(135, signatureY, 196, signatureY);
     }
-    const filename = `asistencia-${brigade.id_brigada}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filename = `asistencia-${brigade.id_brigada}-${attendanceDate}.pdf`;
     const base64 = doc.output('datauristring').split(',')[1];
     setBrigadeActionStatus('PDF listo. Enviando a la carpeta de Drive de la brigada...');
     await guardarReporteDrive({
@@ -1528,6 +1538,7 @@ async function generarPDFAsistencia(includeLoaded) {
       id_brigada: brigade.id_brigada,
       brigada: brigade.nombre_brigada,
       tipo_reporte: 'asistencia',
+      fecha: attendanceDate,
       tema: trainingTopic,
       observaciones: generalNotes,
     });

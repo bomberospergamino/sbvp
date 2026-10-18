@@ -391,6 +391,13 @@ p { color: var(--muted); margin-top: 4px; }
   color: var(--navy);
 }
 
+.attendance-header-fields {
+  display: grid;
+  grid-template-columns: minmax(180px, .45fr) minmax(280px, 1.55fr);
+  gap: 14px;
+  align-items: end;
+}
+
 .attendance-field input,
 .attendance-field textarea {
   width: 100%;
@@ -409,6 +416,13 @@ p { color: var(--muted); margin-top: 4px; }
 .attendance-notes {
   margin: 14px 0 0;
   padding: 0 14px;
+}
+
+@media (max-width: 680px) {
+  .attendance-header-fields {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }
 
 .simple-list {
