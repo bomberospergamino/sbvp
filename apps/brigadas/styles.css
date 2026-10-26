@@ -513,6 +513,86 @@ p { color: var(--muted); margin-top: 4px; }
 .month-status.pending { border-left-color: #d5443f; background: #fff5f4; }
 .month-status.future { opacity: .62; }
 
+.admin-comparison-report {
+  margin: 18px 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.admin-report-head { margin-bottom: 16px; }
+
+.admin-brigade-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.admin-brigade-chart-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fbfd;
+}
+
+.admin-brigade-chart-card h3 {
+  margin: 0 0 12px;
+  color: var(--navy);
+  text-align: center;
+}
+
+.admin-chart-pair {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.mini-chart { display: grid; place-items: center; gap: 5px; text-align: center; }
+.mini-chart span { color: var(--navy); font-weight: 800; font-size: 13px; }
+.mini-chart small { color: var(--muted); font-weight: 700; }
+
+.mini-donut {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: conic-gradient(var(--chart-color) calc(var(--value) * 1%), #dfe7ec 0);
+}
+
+.mini-donut::before {
+  content: '';
+  position: absolute;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.mini-donut strong { position: relative; z-index: 1; color: var(--navy); font-size: 17px; }
+
+.admin-podium-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.admin-podium-card {
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--navy);
+  color: #fff;
+}
+
+.admin-podium-card h3 { margin: 0 0 12px; }
+.podium-list { display: grid; gap: 8px; }
+.podium-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.12); }
+.podium-row b { font-size: 18px; }
+.podium-medal { font-size: 24px; }
+
 @media (max-width: 680px) {
   .attendance-header-fields {
     grid-template-columns: 1fr;
@@ -526,6 +606,7 @@ p { color: var(--muted); margin-top: 4px; }
   .donut-chart::before { width: 72px; height: 72px; }
   .donut-chart strong { font-size: 20px; }
   .compliance-months { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+  .admin-podium-grid { grid-template-columns: 1fr; }
 }
 
 .simple-list {

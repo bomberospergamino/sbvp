@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SBVP | Brigadas</title>
-    <link rel="stylesheet" href="styles.css?v=brigadas-cumplimiento-30">
+    <link rel="stylesheet" href="styles.css?v=brigadas-admin-podios-31">
     <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script defer src="app.js?v=brigadas-cumplimiento-30"></script>
+    <script defer src="app.js?v=brigadas-admin-podios-31"></script>
   </head>
   <body>
     <header class="topbar">
@@ -241,7 +241,7 @@
             </div>
             <div class="button-row">
               <button id="exportCsvButton">Exportar CSV</button>
-              <button id="exportAdminPdfButton">Exportar PDF</button>
+              <button id="exportAdminPdfButton">Descargar reporte PDF</button>
             </div>
           </div>
           <div class="filters">
@@ -256,6 +256,25 @@
             <label><input id="onlyHighFilter" type="checkbox"> Alta prioridad</label>
           </div>
           <div id="adminKpis" class="kpi-grid"></div>
+          <div id="adminComparisonReport" class="admin-comparison-report">
+            <div class="panel-head admin-report-head">
+              <div>
+                <p class="eyebrow">Comparativa general</p>
+                <h2 id="adminComparisonTitle">Cumplimiento de brigadas</h2>
+              </div>
+            </div>
+            <div id="adminBrigadeCharts" class="admin-brigade-charts"></div>
+            <div class="admin-podium-grid">
+              <section class="admin-podium-card">
+                <h3>Podio de encuentros cumplidos</h3>
+                <div id="meetingPodium" class="podium-list"></div>
+              </section>
+              <section class="admin-podium-card">
+                <h3>Podio de asistencia</h3>
+                <div id="attendancePodium" class="podium-list"></div>
+              </section>
+            </div>
+          </div>
           <div class="work-panel">
             <div class="panel-head">
               <h2 id="adminSummaryTitle">Métricas mensuales por brigada</h2>

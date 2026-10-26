@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-cumplimiento-30';
+const APP_VERSION = 'brigadas-admin-podios-31';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -862,6 +862,8 @@ function renderAdmin() {
     ['Checks criticos', kpis.criticalChecks],
   ].map(([label, value]) => `<article class="kpi-card"><span>${label}</span><strong>${value}</strong></article>`).join('');
 
+  renderAdminComparison(fullSummary, period);
+
   document.getElementById('adminTable').innerHTML = summary.map((row) => `
     <tr>
       <td>${escapeHtml(row.brigada)}</td>
@@ -880,6 +882,43 @@ function renderAdmin() {
   renderAttendanceByPerson(period.from, period.to);
   renderAlerts(fullSummary);
   renderAdminEvents(period.from, period.to);
+}
+
+function renderAdminComparison(summary, period) {
+  const ranked = summary.map((row) => ({
+    ...row,
+    meetingPercent: row.meses_esperados ? Math.round((row.meses_cubiertos / row.meses_esperados) * 100) : 0,
+  }));
+  document.getElementById('adminComparisonTitle').textContent = period.type === 'year'
+    ? `Cumplimiento de todas las brigadas · ${period.year}`
+    : `Cumplimiento de todas las brigadas · ${period.label}`;
+  document.getElementById('adminBrigadeCharts').innerHTML = ranked.map((row) => `
+    <article class="admin-brigade-chart-card">
+      <h3>${escapeHtml(row.brigada)}</h3>
+      <div class="admin-chart-pair">
+        ${miniDonut('Encuentros', row.meetingPercent, `${row.meses_cubiertos}/${row.meses_esperados}`, '#16824b')}
+        ${miniDonut('Asistencia', row.porcentaje_asistencia, `${row.total_presentes}/${row.total_convocados}`, '#1671a6')}
+      </div>
+    </article>
+  `).join('');
+  renderPodium('meetingPodium', [...ranked].sort((a, b) => b.meetingPercent - a.meetingPercent || a.brigada.localeCompare(b.brigada)), 'meetingPercent');
+  renderPodium('attendancePodium', [...ranked].sort((a, b) => b.porcentaje_asistencia - a.porcentaje_asistencia || a.brigada.localeCompare(b.brigada)), 'porcentaje_asistencia');
+}
+
+function miniDonut(label, percent, detail, color) {
+  const safePercent = Math.max(0, Math.min(Number(percent) || 0, 100));
+  return `<div class="mini-chart"><div class="mini-donut" style="--value:${safePercent};--chart-color:${color}"><strong>${safePercent}%</strong></div><span>${escapeHtml(label)}</span><small>${escapeHtml(detail)}</small></div>`;
+}
+
+function renderPodium(containerId, rows, metricKey) {
+  const medals = ['🥇', '🥈', '🥉'];
+  document.getElementById(containerId).innerHTML = rows.slice(0, 3).map((row, index) => `
+    <article class="podium-row rank-${index + 1}">
+      <span class="podium-medal">${medals[index]}</span>
+      <strong>${escapeHtml(row.brigada)}</strong>
+      <b>${Number(row[metricKey]) || 0}%</b>
+    </article>
+  `).join('');
 }
 
 function renderAdminEvents(from, to) {
@@ -1887,8 +1926,40 @@ function exportAdminCsv() {
   downloadBlob(csv, `admin-brigadas-${period.type === 'year' ? period.year : `${period.year}-${period.month}`}.csv`, 'text/csv;charset=utf-8');
 }
 
-function exportAdminPdf() {
-  window.print();
+async function exportAdminPdf() {
+  const report = document.getElementById('adminComparisonReport');
+  const jsPDF = window.jspdf?.jsPDF;
+  if (!report || !window.html2canvas || !jsPDF) {
+    alert('No se pudo preparar el reporte gráfico. Recargá la página e intentá nuevamente.');
+    return;
+  }
+  setButtonLoading('exportAdminPdfButton', true, 'Generando PDF...');
+  try {
+    const canvas = await html2canvas(report, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const imageData = canvas.toDataURL('image/png');
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const margin = 8;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const imageWidth = pageWidth - margin * 2;
+    const imageHeight = canvas.height * imageWidth / canvas.width;
+    const usableHeight = pageHeight - margin * 2;
+    let renderedHeight = 0;
+    doc.addImage(imageData, 'PNG', margin, margin, imageWidth, imageHeight);
+    renderedHeight += usableHeight;
+    while (renderedHeight < imageHeight) {
+      doc.addPage();
+      doc.addImage(imageData, 'PNG', margin, margin - renderedHeight, imageWidth, imageHeight);
+      renderedHeight += usableHeight;
+    }
+    const period = getSelectedAdminPeriod();
+    doc.save(`cumplimiento-brigadas-${period.type === 'year' ? period.year : `${period.year}-${period.month}`}.pdf`);
+  } catch (error) {
+    console.error(error);
+    alert('No se pudo generar el reporte gráfico.');
+  } finally {
+    setButtonLoading('exportAdminPdfButton', false);
+  }
 }
 
 function descargarIntegrantesBrigada() {
