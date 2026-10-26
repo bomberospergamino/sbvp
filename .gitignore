@@ -1,5 +1,6 @@
 # Archivos generados y de trabajo local
 outputs/
+tmp/
 
 # Dependencias y resultados de compilacion
 node_modules/
