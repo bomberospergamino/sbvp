@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-cumplimiento-27';
+const APP_VERSION = 'brigadas-cumplimiento-28';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -751,7 +751,7 @@ function setupBrigadeComplianceYears() {
   const select = document.getElementById('brigadeComplianceYear');
   if (!select) return;
   const current = select.value || String(new Date().getFullYear());
-  const years = new Set(getAvailableYears().map(String));
+  const years = new Set(getAvailableMetricYears().map(String));
   years.add(String(new Date().getFullYear()));
   select.innerHTML = '';
   [...years].sort((a, b) => Number(b) - Number(a)).forEach((year) => select.add(new Option(year, year)));
