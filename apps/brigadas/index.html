@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SBVP | Brigadas</title>
-    <link rel="stylesheet" href="styles.css?v=brigadas-admin-podios-31">
+    <link rel="stylesheet" href="styles.css?v=brigadas-personas-podio-32">
     <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-    <script defer src="app.js?v=brigadas-admin-podios-31"></script>
+    <script defer src="app.js?v=brigadas-personas-podio-32"></script>
   </head>
   <body>
     <header class="topbar">
@@ -83,6 +83,15 @@
                 </label>
               </div>
               <div id="complianceCharts" class="compliance-charts"></div>
+              <section class="brigade-person-podium">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Asistencia individual</p>
+                    <h3>Podio de integrantes</h3>
+                  </div>
+                </div>
+                <div id="brigadePersonPodium" class="podium-list"></div>
+              </section>
               <div>
                 <h3 class="month-status-title">Cumplimiento mes a mes</h3>
                 <div id="complianceMonths" class="compliance-months"></div>
@@ -273,51 +282,6 @@
                 <h3>Podio de asistencia</h3>
                 <div id="attendancePodium" class="podium-list"></div>
               </section>
-            </div>
-          </div>
-          <div class="work-panel">
-            <div class="panel-head">
-              <h2 id="adminSummaryTitle">Métricas mensuales por brigada</h2>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Brigada</th>
-                    <th>Meses cubiertos</th>
-                    <th>Encuentros realizados</th>
-                    <th>Total asistencias</th>
-                    <th>Presentes</th>
-                    <th>Ausentes</th>
-                    <th>Justificados</th>
-                    <th>% asistencia</th>
-                    <th>Checks</th>
-                    <th>Necesidades</th>
-                    <th>Estado general</th>
-                  </tr>
-                </thead>
-                <tbody id="adminTable"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="work-panel">
-            <div class="panel-head">
-              <h2>Asistencia por persona y brigada</h2>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Brigada</th>
-                    <th>Integrante</th>
-                    <th>Presentes</th>
-                    <th>Ausentes</th>
-                    <th>Justificados</th>
-                    <th>% asistencia</th>
-                  </tr>
-                </thead>
-                <tbody id="attendanceByPersonTable"></tbody>
-              </table>
             </div>
           </div>
           <div class="work-panel">

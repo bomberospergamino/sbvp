@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-admin-podios-31';
+const APP_VERSION = 'brigadas-personas-podio-32';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -825,6 +825,7 @@ function renderBrigadeCompliance() {
     ${donutCard('Encuentros cumplidos', summary.meetingPercent, `${summary.completedMeetings} de ${summary.expectedMeetings} encuentros esperados`, `${summary.completedExtras} extras cumplidos · Realizado + asistencia`, '#16824b')}
     ${donutCard('Asistencia de integrantes', summary.attendancePercent, `${summary.present} presentes de ${summary.totalAttendance} registros`, `${summary.absent} ausentes · ${summary.justified} justificados`, '#1671a6')}
   `;
+  renderBrigadePersonPodium(year);
   const monthNames = Array.from({ length: 12 }, (_, index) => new Date(2000, index, 1).toLocaleDateString('es-AR', { month: 'short' }).replace('.', ''));
   monthsContainer.innerHTML = summary.months.map((month) => {
     const status = !month.evaluated ? 'future' : month.compliant ? 'complete' : 'pending';
@@ -844,9 +845,6 @@ function renderAdmin() {
   state.adminYear = period.year;
   state.adminMonth = `${period.year}-${period.month}`;
   document.getElementById('adminMonthLabel').classList.toggle('hidden', period.type === 'year');
-  document.getElementById('adminSummaryTitle').textContent = period.type === 'year'
-    ? `Métricas anuales por brigada · ${period.year}`
-    : `Métricas mensuales por brigada · ${period.label}`;
   const fullSummary = calcularResumenAdminRango(period.from, period.to, period.expectedMonths);
   const summary = fullSummary.filter(filterAdminRow);
   const kpis = calculateKpis(fullSummary);
@@ -862,24 +860,8 @@ function renderAdmin() {
     ['Checks criticos', kpis.criticalChecks],
   ].map(([label, value]) => `<article class="kpi-card"><span>${label}</span><strong>${value}</strong></article>`).join('');
 
-  renderAdminComparison(fullSummary, period);
-
-  document.getElementById('adminTable').innerHTML = summary.map((row) => `
-    <tr>
-      <td>${escapeHtml(row.brigada)}</td>
-      <td>${row.meses_cubiertos} / ${row.meses_esperados}</td>
-      <td>${row.encuentros_realizados}</td>
-      <td>${row.cantidad_asistencias}</td>
-      <td>${row.total_presentes}</td>
-      <td>${row.total_ausentes}</td>
-      <td>${row.total_justificados}</td>
-      <td>${row.porcentaje_asistencia}%</td>
-      <td>${row.checks_equipamiento}</td>
-      <td>${row.necesidades_pendientes}</td>
-      <td><span class="badge ${row.estado_general.toLowerCase()}">${row.estado_general}</span></td>
-    </tr>
-  `).join('');
-  renderAttendanceByPerson(period.from, period.to);
+  const annualPeriod = { type: 'year', year: period.year, from: `${period.year}-01-01`, to: `${period.year}-12-31`, expectedMonths: 12, label: period.year };
+  renderAdminComparison(calcularResumenAdminRango(annualPeriod.from, annualPeriod.to, annualPeriod.expectedMonths), annualPeriod);
   renderAlerts(fullSummary);
   renderAdminEvents(period.from, period.to);
 }
@@ -919,6 +901,23 @@ function renderPodium(containerId, rows, metricKey) {
       <b>${Number(row[metricKey]) || 0}%</b>
     </article>
   `).join('');
+}
+
+function renderBrigadePersonPodium(year) {
+  const container = document.getElementById('brigadePersonPodium');
+  const brigade = getBrigadasActivas().find((item) => item.id_brigada === state.selectedBrigade);
+  if (!container || !brigade) return;
+  const rows = calcularAsistenciaPorPersona(brigade, `${year}-01-01`, `${year}-12-31`)
+    .filter((row) => row.total > 0)
+    .sort((a, b) => b.porcentaje - a.porcentaje || b.presentes - a.presentes || a.nombre.localeCompare(b.nombre, 'es'));
+  const medals = ['🥇', '🥈', '🥉'];
+  container.innerHTML = rows.length ? rows.slice(0, 3).map((row, index) => `
+    <article class="podium-row rank-${index + 1}">
+      <span class="podium-medal">${medals[index]}</span>
+      <div><strong>${escapeHtml(row.nombre)}</strong><small>${row.presentes} de ${row.total} encuentros</small></div>
+      <b>${row.porcentaje}%</b>
+    </article>
+  `).join('') : '<p class="empty-state">Todavía no hay asistencias registradas para este año.</p>';
 }
 
 function renderAdminEvents(from, to) {
@@ -1562,8 +1561,10 @@ function calcularAsistenciaPorPersona(brigade, from, to) {
     totals.set(key, total);
   });
   return Array.from(totals.values()).map((row) => {
-    const total = row.presentes + row.ausentes + row.justificados;
-    return { ...row, total, porcentaje: total ? Math.round((row.presentes / total) * 100) : 0 };
+    const total = assistanceIds.size;
+    const recorded = row.presentes + row.ausentes + row.justificados;
+    const absent = row.ausentes + Math.max(0, total - recorded);
+    return { ...row, ausentes: absent, total, porcentaje: total ? Math.round((row.presentes / total) * 100) : 0 };
   }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 

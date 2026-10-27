@@ -592,6 +592,11 @@ p { color: var(--muted); margin-top: 4px; }
 .podium-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.12); }
 .podium-row b { font-size: 18px; }
 .podium-medal { font-size: 24px; }
+.podium-row small { display: block; margin-top: 2px; color: inherit; opacity: .78; }
+.brigade-person-podium { margin: 18px 0; padding: 18px; border-radius: 16px; background: #0b4567; color: #fff; }
+.brigade-person-podium .panel-head { margin-bottom: 12px; }
+.brigade-person-podium h3 { margin: 2px 0 0; }
+.brigade-person-podium .eyebrow { color: #b9d9ea; }
 
 @media (max-width: 680px) {
   .attendance-header-fields {
