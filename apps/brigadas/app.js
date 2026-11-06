@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-personas-podio-32';
+const APP_VERSION = 'brigadas-ranking-completo-33';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -908,16 +908,15 @@ function renderBrigadePersonPodium(year) {
   const brigade = getBrigadasActivas().find((item) => item.id_brigada === state.selectedBrigade);
   if (!container || !brigade) return;
   const rows = calcularAsistenciaPorPersona(brigade, `${year}-01-01`, `${year}-12-31`)
-    .filter((row) => row.total > 0)
     .sort((a, b) => b.porcentaje - a.porcentaje || b.presentes - a.presentes || a.nombre.localeCompare(b.nombre, 'es'));
   const medals = ['🥇', '🥈', '🥉'];
-  container.innerHTML = rows.length ? rows.slice(0, 3).map((row, index) => `
-    <article class="podium-row rank-${index + 1}">
-      <span class="podium-medal">${medals[index]}</span>
-      <div><strong>${escapeHtml(row.nombre)}</strong><small>${row.presentes} de ${row.total} encuentros</small></div>
-      <b>${row.porcentaje}%</b>
+  container.innerHTML = rows.length ? rows.map((row, index) => `
+    <article class="podium-row${index < 3 ? ` rank-${index + 1}` : ''}">
+      <span class="podium-medal">${medals[index] || `<span class="podium-position">${index + 1}</span>`}</span>
+      <div><strong>${escapeHtml(row.nombre)}</strong><small>${row.total ? `${row.presentes} de ${row.total} encuentros` : 'Sin encuentros registrados'}</small></div>
+      <b>${row.total ? `${row.porcentaje}%` : '—'}</b>
     </article>
-  `).join('') : '<p class="empty-state">Todavía no hay asistencias registradas para este año.</p>';
+  `).join('') : '<p class="empty-state">La brigada todavía no tiene integrantes registrados.</p>';
 }
 
 function renderAdminEvents(from, to) {
