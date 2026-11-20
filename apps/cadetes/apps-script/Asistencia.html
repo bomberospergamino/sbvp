@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <base target="_top">
+  <style>
+    body { margin: 20px auto; padding: 0 14px; max-width: 720px; font: 16px system-ui; color: #12334a; }
+    form, fieldset { display: grid; gap: 12px; }
+    fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+    label { display: grid; gap: 4px; }
+    input, select, button { box-sizing: border-box; min-height: 42px; padding: 8px; font: inherit; }
+    input, select { width: 100%; min-width: 0; }
+    .cadete { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 145px); gap: 10px; align-items: center; }
+    .cadete span { overflow-wrap: anywhere; }
+    button { color: white; background: #063452; border: 0; border-radius: 6px; cursor: pointer; }
+    button:disabled { opacity: .6; }
+  </style>
+</head>
+<body>
+  <h1>Asistencia · Nivel <?= nivel ?></h1>
+  <p id="mensaje" role="status">Cargando padrón…</p>
+  <a id="pdf" target="_blank" rel="noopener" hidden>Abrir PDF en Drive</a>
+  <form id="asistencia" data-nivel="<?= nivel ?>">
+    <fieldset id="campos" disabled>
+      <label>Fecha <input name="fecha" type="date" value="<?= fecha ?>" required></label>
+      <label>Responsable o responsables <input name="responsables" maxlength="250" required></label>
+      <label>Tema <input name="tema" maxlength="120" required></label>
+      <h2>Cadetes</h2>
+      <div id="padron"></div>
+      <button type="submit">Enviar PDF a Drive</button>
+    </fieldset>
+  </form>
+  <script>
+    const form = document.getElementById('asistencia');
+    const campos = document.getElementById('campos');
+    const mensaje = document.getElementById('mensaje');
+    const pdf = document.getElementById('pdf');
+    let cadetes = [];
+
+    google.script.run.withSuccessHandler(personas => {
+      cadetes = personas;
+      for (const persona of cadetes) {
+        const fila = document.createElement('label');
+        fila.className = 'cadete';
+        const nombre = document.createElement('span');
+        nombre.textContent = persona.nombre;
+        const marca = document.createElement('select');
+        marca.name = 'cadete-' + persona.fila;
+        marca.required = true;
+        marca.add(new Option('Elegir', ''));
+        for (const estado of ['Presente', 'Ausente', 'Justificado']) marca.add(new Option(estado));
+        fila.append(nombre, marca);
+        document.getElementById('padron').append(fila);
+      }
+      mensaje.textContent = cadetes.length ? '' : 'No hay cadetes cargados para este nivel.';
+      campos.disabled = !cadetes.length;
+    }).withFailureHandler(error => {
+      mensaje.textContent = 'No se pudo cargar el padrón. ' + error.message;
+    }).cargarPadron(form.dataset.nivel);
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const datos = new FormData(form);
+      const marcas = cadetes.map(persona => ({ ...persona, estado: datos.get('cadete-' + persona.fila) }));
+      campos.disabled = true;
+      pdf.hidden = true;
+      mensaje.textContent = 'Guardando PDF en Drive…';
+      google.script.run.withSuccessHandler(archivo => {
+        mensaje.textContent = 'Guardado en Drive. ' + archivo.nombre;
+        pdf.href = archivo.url;
+        pdf.hidden = false;
+        form.reset();
+        campos.disabled = false;
+      }).withFailureHandler(error => {
+        mensaje.textContent = 'No se pudo guardar la asistencia. ' + error.message;
+        campos.disabled = false;
+      }).guardarAsistencia({
+        nivel: form.dataset.nivel, fecha: datos.get('fecha'),
+        responsables: datos.get('responsables'), tema: datos.get('tema'), marcas,
+      });
+    });
+  </script>
+</body>
+</html>

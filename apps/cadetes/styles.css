@@ -1,0 +1,43 @@
+.cadetes-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.cadetes-heading img {
+  flex: none;
+}
+
+.cadetes-level {
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.cadetes-level h2 {
+  margin-bottom: 10px;
+}
+
+.cadetes-level details {
+  border-top: 1px solid var(--line);
+}
+
+.cadetes-level summary {
+  padding: 12px 0;
+  color: var(--navy);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cadetes-level details p,
+.cadetes-level details ul {
+  padding-bottom: 12px;
+}
+
+.cadetes-level li span {
+  color: var(--muted);
+}
