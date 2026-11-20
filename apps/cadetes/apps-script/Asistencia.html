@@ -9,8 +9,11 @@
     label { display: grid; gap: 4px; }
     input, select, button { box-sizing: border-box; min-height: 42px; padding: 8px; font: inherit; }
     input, select { width: 100%; min-width: 0; }
-    .cadete { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 145px); gap: 10px; align-items: center; }
-    .cadete span { overflow-wrap: anywhere; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { padding: 6px 3px; border-bottom: 1px solid #d7e1e8; text-align: center; }
+    th:first-child { width: 40%; text-align: left; overflow-wrap: anywhere; }
+    thead th { font-size: .8rem; overflow-wrap: anywhere; }
+    input[type="radio"] { width: 22px; min-height: 22px; padding: 0; margin: 6px 0; accent-color: #063452; }
     button { color: white; background: #063452; border: 0; border-radius: 6px; cursor: pointer; }
     button:disabled { opacity: .6; }
   </style>
@@ -25,7 +28,10 @@
       <label>Responsable o responsables <input name="responsables" maxlength="250" required></label>
       <label>Tema <input name="tema" maxlength="120" required></label>
       <h2>Cadetes</h2>
-      <div id="padron"></div>
+      <table aria-label="Grilla de asistencia">
+        <thead><tr><th scope="col">Cadete</th><th scope="col">Presente</th><th scope="col">Ausente</th><th scope="col">Justificado</th></tr></thead>
+        <tbody id="padron"></tbody>
+      </table>
       <button type="submit">Enviar PDF a Drive</button>
     </fieldset>
   </form>
@@ -39,16 +45,22 @@
     google.script.run.withSuccessHandler(personas => {
       cadetes = personas;
       for (const persona of cadetes) {
-        const fila = document.createElement('label');
-        fila.className = 'cadete';
-        const nombre = document.createElement('span');
+        const fila = document.createElement('tr');
+        const nombre = document.createElement('th');
+        nombre.scope = 'row';
         nombre.textContent = persona.nombre;
-        const marca = document.createElement('select');
-        marca.name = 'cadete-' + persona.fila;
-        marca.required = true;
-        marca.add(new Option('Elegir', ''));
-        for (const estado of ['Presente', 'Ausente', 'Justificado']) marca.add(new Option(estado));
-        fila.append(nombre, marca);
+        fila.append(nombre);
+        for (const estado of ['Presente', 'Ausente', 'Justificado']) {
+          const celda = document.createElement('td');
+          const marca = document.createElement('input');
+          marca.type = 'radio';
+          marca.name = 'cadete-' + persona.fila;
+          marca.value = estado;
+          marca.required = true;
+          marca.setAttribute('aria-label', persona.nombre + ', ' + estado);
+          celda.append(marca);
+          fila.append(celda);
+        }
         document.getElementById('padron').append(fila);
       }
       mensaje.textContent = cadetes.length ? '' : 'No hay cadetes cargados para este nivel.';

@@ -22,22 +22,7 @@
   margin-bottom: 10px;
 }
 
-.cadetes-level details {
-  border-top: 1px solid var(--line);
-}
-
-.cadetes-level summary {
-  padding: 12px 0;
-  color: var(--navy);
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.cadetes-level details p,
-.cadetes-level details ul {
-  padding-bottom: 12px;
-}
-
-.cadetes-level li span {
+.cadetes-level [aria-disabled="true"] {
   color: var(--muted);
+  pointer-events: none;
 }
