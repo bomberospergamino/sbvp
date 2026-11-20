@@ -835,6 +835,34 @@ td input[type="radio"] {
   height: 18px;
 }
 
+#attendancePanel table {
+  min-width: 0;
+}
+
+#attendancePanel :is(th, td):last-child {
+  width: 24%;
+}
+
+#attendancePanel td input[type="text"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  #attendancePanel :is(th, td) {
+    padding: 6px 3px;
+  }
+
+  #attendancePanel td:first-child {
+    overflow-wrap: anywhere;
+  }
+
+  #attendancePanel td input[type="radio"] {
+    margin: 0;
+  }
+}
+
 .notice {
   margin: 12px;
   padding: 10px;

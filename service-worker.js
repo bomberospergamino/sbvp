@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sbvp-home-v47-tranqueras';
+const CACHE_NAME = 'sbvp-home-v48-cadetes';
 const APP_SHELL = [
   './',
   './index.html',

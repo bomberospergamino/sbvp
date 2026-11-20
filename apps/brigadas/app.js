@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-ranking-completo-33';
+const APP_VERSION = 'brigadas-ranking-completo-34';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -423,7 +423,6 @@ function renderMembers() {
     row.innerHTML = `
       <td>${escapeHtml(name)}</td>
       <td>${escapeHtml(person.legajo || '')}</td>
-      <td>${escapeHtml(person.jerarquia || '')}</td>
       <td><input name="att-${index}" type="radio" value="P"></td>
       <td><input name="att-${index}" type="radio" value="A"></td>
       <td><input name="att-${index}" type="radio" value="Just."></td>
@@ -1668,23 +1667,23 @@ async function generarPDFAsistencia(includeLoaded) {
     doc.text('Integrantes de la Brigada', 14, membersTitleY);
     const body = members.map((person, index) => {
       const name = [person.apellido, person.nombre].filter(Boolean).join(', ') || person.bombero || 'Sin nombre';
-      const selected = attendanceDetails[index].estado_asistencia;
-      const obs = attendanceDetails[index].observacion_individual;
-      return [name, selected === 'P' ? 'X' : '', selected === 'A' ? 'X' : '', selected === 'Just.' ? 'X' : '', obs];
+      const { jerarquia, estado_asistencia: selected, observacion_individual: obs } = attendanceDetails[index];
+      return [name, jerarquia, selected === 'P' ? 'X' : '', selected === 'A' ? 'X' : '', selected === 'Just.' ? 'X' : '', obs];
     });
     if (doc.autoTable) {
       doc.autoTable({
         startY: membersTitleY + 5,
-        head: [['Integrante', 'P', 'A', 'Just.', 'Obs.']],
+        head: [['Integrante', 'Jerarquía', 'P', 'A', 'Just.', 'Obs.']],
         body,
         styles: { fontSize: 9, cellPadding: 2.3 },
         headStyles: { fillColor: [6, 52, 82], textColor: [255, 255, 255] },
         columnStyles: {
-          0: { cellWidth: 84 },
-          1: { cellWidth: 16, halign: 'center' },
-          2: { cellWidth: 16, halign: 'center' },
-          3: { cellWidth: 20, halign: 'center' },
-          4: { cellWidth: 42 },
+          0: { cellWidth: 64 },
+          1: { cellWidth: 38 },
+          2: { cellWidth: 10, halign: 'center' },
+          3: { cellWidth: 10, halign: 'center' },
+          4: { cellWidth: 14, halign: 'center' },
+          5: { cellWidth: 46 },
         },
         margin: { left: 14, right: 14 },
       });
