@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-reporte-anual-36';
+const APP_VERSION = 'brigadas-reporte-anual-37';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -1539,11 +1539,11 @@ function calcularAsistenciaPorPersona(brigade, from, to) {
     .filter(Boolean));
   const totals = new Map();
   getIntegrantesBrigada(brigade.id_brigada).forEach((person) => {
-    const nombre = [person.apellido, person.nombre].filter(Boolean).join(', ') || person.bombero || person.legajo || 'Sin nombre';
+    const nombre = attendancePersonName(person);
     totals.set(person.legajo || nombre, { brigada: brigade.nombre_brigada, nombre, presentes: 0, ausentes: 0, justificados: 0 });
   });
   (state.sheets.DETALLE_ASISTENCIAS || []).map(normalizeRow).filter((row) => assistanceIds.has(row.id_asistencia)).forEach((row) => {
-    const nombre = [row.apellido, row.nombre].filter(Boolean).join(', ') || row.bombero || row.legajo || 'Sin nombre';
+    const nombre = attendancePersonName(row);
     const key = row.legajo || nombre;
     const total = totals.get(key) || { brigada: brigade.nombre_brigada, nombre, presentes: 0, ausentes: 0, justificados: 0 };
     const status = normalizeState(row.estado_asistencia);
@@ -1552,12 +1552,16 @@ function calcularAsistenciaPorPersona(brigade, from, to) {
     if (status === 'just.') total.justificados += 1;
     totals.set(key, total);
   });
-  return Array.from(totals.values()).map((row) => {
+  return Array.from(totals.entries()).map(([key, row]) => {
     const total = assistanceIds.size;
     const recorded = row.presentes + row.ausentes + row.justificados;
     const absent = row.ausentes + Math.max(0, total - recorded);
-    return { ...row, ausentes: absent, total, porcentaje: total ? Math.round((row.presentes / total) * 100) : 0 };
+    return { ...row, key, ausentes: absent, total, porcentaje: total ? Math.round((row.presentes / total) * 100) : 0 };
   }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+}
+
+function attendancePersonName(person) {
+  return [person.apellido, person.nombre].filter(Boolean).join(', ') || person.bombero || person.legajo || 'Sin nombre';
 }
 
 function setBrigadeActionStatus(message, type = 'info') {
@@ -1975,6 +1979,8 @@ function exportAnnualBrigadesPdf() {
       if (index) doc.addPage();
       drawAnnualBrigadePage(doc, brigade, cutoff);
     });
+    doc.addPage();
+    drawActivePersonnelSummary(doc, brigades, cutoff);
     doc.save(`reporte-brigadas-${parts.year}-al-${cutoff}.pdf`);
   } catch (error) {
     console.error('No se pudo generar el reporte anual', error);
@@ -2071,6 +2077,78 @@ function drawAnnualBrigadePage(doc, brigade, cutoff) {
   text('Cumplió = encuentro mensual obligatorio realizado y con asistencia registrada.', 30, 781, 8);
   text('Asistencia = presentes / planillas de la brigada. Las marcas faltantes cuentan como ausencias.', 30, 794, 8);
   text('El podio incluye empates. El umbral del 50% se aplica antes de redondear.', 30, 807, 8);
+}
+
+function getActivePersonnelSummary(brigades, cutoff) {
+  const from = `${cutoff.slice(0, 4)}-01-01`;
+  const active = state.sheets.PERSONAL.map(normalizePerson).filter(person => isYes(person.activo));
+  const metrics = new Map(brigades.map(brigade => [
+    brigade.id_brigada,
+    new Map(calcularAsistenciaPorPersona(brigade, from, cutoff).map(person => [person.key, person])),
+  ]));
+  const noBrigade = [];
+  const noCompliance = [];
+  let pending = 0;
+  active.forEach(person => {
+    const name = attendancePersonName(person);
+    const memberships = brigades.filter(brigade => brigade.columna_personal && isMarked(person[brigade.columna_personal]));
+    const row = { name, legajo: String(person.legajo || '—'), count: memberships.length };
+    if (!memberships.length) {
+      noBrigade.push(row);
+      return;
+    }
+    const results = memberships.map(brigade => metrics.get(brigade.id_brigada).get(person.legajo || name));
+    if (results.some(result => result?.total && result.presentes * 2 >= result.total)) return;
+    if (results.every(result => result?.total)) noCompliance.push(row);
+    else pending += 1;
+  });
+  const alphabetical = (a, b) => a.name.localeCompare(b.name, 'es');
+  return { noBrigade: noBrigade.sort(alphabetical), noCompliance: noCompliance.sort(alphabetical), pending };
+}
+
+function drawActivePersonnelSummary(doc, brigades, cutoff) {
+  const { noBrigade, noCompliance, pending } = getActivePersonnelSummary(brigades, cutoff);
+  const text = (value, x, y, size = 10, color = '#19374b', bold = false, width = 0) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(size);
+    if (width && doc.getTextWidth(value) > width) doc.setFontSize(size * width / doc.getTextWidth(value));
+    doc.setTextColor(color);
+    doc.text(value, x, y);
+  };
+  doc.setFillColor('#063452');
+  doc.roundedRect(30, 30, 535, 78, 5, 5, 'F');
+  text('SBVP / CUMPLIMIENTO Y ASISTENCIA', 46, 52, 10, '#d6e7f0', true);
+  text('Cuerpo activo', 46, 77, 22, '#ffffff', true);
+  text(`Del 01/01/${cutoff.slice(0, 4)} al ${formatDateDisplay(cutoff)}`, 46, 96, 10, '#ffffff');
+
+  const sections = [
+    { title: 'Sin brigada', rows: noBrigade, x: 30, showCount: false },
+    { title: 'Sin cumplimiento en ninguna brigada', rows: noCompliance, x: 302, showCount: true },
+  ];
+  const longest = Math.max(1, noBrigade.length, noCompliance.length);
+  const height = Math.min(19, 591 / longest);
+  const size = Math.min(9, height * 0.58);
+  sections.forEach(({ title, rows, x, showCount }) => {
+    text(title, x, 136, 13, '#19374b', true, 263);
+    text(`${rows.length} personas`, x, 153);
+    doc.setFillColor('#063452');
+    doc.rect(x, 164, 263, 18, 'F');
+    text('Apellido y nombre', x + 5, 176, 9, '#ffffff', true);
+    text('Legajo', x + 183, 176, 9, '#ffffff', true);
+    if (showCount) text('Brigadas', x + 220, 176, 9, '#ffffff', true);
+    if (!rows.length) text('Sin casos en el período.', x + 5, 198);
+    rows.forEach((row, i) => {
+      const y = 182 + i * height;
+      doc.setFillColor(i % 2 ? '#eef4f8' : '#f7f9fb');
+      doc.rect(x, y, 263, height, 'F');
+      text(row.name, x + 5, y + height * 0.72, size, '#19374b', false, 173);
+      text(row.legajo, x + 183, y + height * 0.72, size, '#19374b', false, 33);
+      if (showCount) text(String(row.count), x + 220, y + height * 0.72, size);
+    });
+  });
+  text('Sin brigada = personal activo sin asignación a una brigada activa.', 30, 784, 8);
+  text('Sin cumplimiento = menos del 50% de asistencia en cada brigada asignada, con planillas en todas.', 30, 797, 8);
+  text(`Casos sin evaluación concluyente por falta de planillas: ${pending}.`, 30, 810, 8);
 }
 
 function descargarIntegrantesBrigada() {
