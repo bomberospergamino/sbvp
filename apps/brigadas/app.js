@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-reporte-anual-39';
+const APP_VERSION = 'brigadas-reporte-anual-40';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -1554,7 +1554,7 @@ function calcularAsistenciaPorPersona(brigade, from, to) {
         /^trabajo(?:\b|$)/.test(normalizeState(row.observacion_individual))) {
       total.justificadosConPresencia = (total.justificadosConPresencia || 0) + 1;
     }
-    if (status === 'baja') total.bajas = (total.bajas || 0) + 1;
+    if (status === 'baja' || (!status && normalizeState(row.observacion_individual) === 'baja')) total.bajas = (total.bajas || 0) + 1;
     totals.set(key, total);
   });
   return Array.from(totals.entries()).map(([key, row]) => {
