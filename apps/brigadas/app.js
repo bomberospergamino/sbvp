@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-reporte-anual-38';
+const APP_VERSION = 'brigadas-reporte-anual-39';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -1550,13 +1550,19 @@ function calcularAsistenciaPorPersona(brigade, from, to) {
     if (status === 'p') total.presentes += 1;
     if (status === 'a') total.ausentes += 1;
     if (status === 'just.') total.justificados += 1;
+    if (status === 'just.' && brigade.id_brigada === 'socorrismo' &&
+        /^trabajo(?:\b|$)/.test(normalizeState(row.observacion_individual))) {
+      total.justificadosConPresencia = (total.justificadosConPresencia || 0) + 1;
+    }
+    if (status === 'baja') total.bajas = (total.bajas || 0) + 1;
     totals.set(key, total);
   });
   return Array.from(totals.entries()).map(([key, row]) => {
-    const total = assistanceIds.size;
+    const total = Math.max(0, assistanceIds.size - (row.bajas || 0));
     const recorded = row.presentes + row.ausentes + row.justificados;
     const absent = row.ausentes + Math.max(0, total - recorded);
-    return { ...row, key, ausentes: absent, total, porcentaje: total ? Math.round((row.presentes / total) * 100) : 0 };
+    const presentes = row.presentes + (row.justificadosConPresencia || 0);
+    return { ...row, key, presentes, ausentes: absent, total, porcentaje: total ? Math.round((presentes / total) * 100) : 0 };
   }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 
@@ -1994,10 +2000,9 @@ function drawAnnualBrigadePage(doc, brigade, cutoff) {
   const compliance = getBrigadeAnnualCompliance(brigade.id_brigada, year, cutoff);
   const people = calcularAsistenciaPorPersona(brigade, from, cutoff)
     .filter(person => person.total)
-    .sort((a, b) => b.presentes - a.presentes || a.nombre.localeCompare(b.nombre, 'es'));
-  const scores = [...new Set(people.map(person => person.presentes))].slice(0, 3);
-  const alerts = people.filter(person => person.presentes * 2 < person.total)
-    .sort((a, b) => b.presentes - a.presentes || a.nombre.localeCompare(b.nombre, 'es'));
+    .sort((a, b) => b.presentes / b.total - a.presentes / a.total || a.nombre.localeCompare(b.nombre, 'es'));
+  const scores = [...new Set(people.map(person => person.presentes / person.total))].slice(0, 3);
+  const alerts = people.filter(person => person.presentes * 2 < person.total);
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const text = (value, x, y, size = 10, color = '#19374b', bold = false) => {
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
@@ -2027,7 +2032,7 @@ function drawAnnualBrigadePage(doc, brigade, cutoff) {
   });
 
   text('Podio individual de asistencia', 30, 261, 15, '#19374b', true);
-  const records = people[0]?.total || compliance.attendanceRecords;
+  const records = compliance.attendanceRecords;
   text(`Planillas registradas: ${records}`, 30, 278);
   let y = 298;
   doc.setFontSize(9);
@@ -2036,7 +2041,7 @@ function drawAnnualBrigadePage(doc, brigade, cutoff) {
     y += 17;
   }
   const podium = scores.map(score => {
-    const tied = people.filter(person => person.presentes === score);
+    const tied = people.filter(person => person.presentes / person.total === score);
     const names = tied.map(person => person.nombre).join(' · ');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
