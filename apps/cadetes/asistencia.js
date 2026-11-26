@@ -1,5 +1,5 @@
 // URL /exec del despliegue de Apps Script de la Escuela de Cadetes.
-const asistenciaUrl = '';
+const asistenciaUrl = 'https://script.google.com/macros/s/AKfycbxfxw4fGlQMhXMcjTybZxcXCXV2HPaUNqpWjMu_PlXbzTXWy5-bI80EBK4SBLYTOuOJuw/exec';
 
 for (const enlace of document.querySelectorAll('[data-asistencia-nivel]')) {
   if (!asistenciaUrl) continue;
