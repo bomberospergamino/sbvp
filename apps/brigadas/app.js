@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-reporte-anual-37';
+const APP_VERSION = 'brigadas-reporte-anual-38';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -2081,7 +2081,9 @@ function drawAnnualBrigadePage(doc, brigade, cutoff) {
 
 function getActivePersonnelSummary(brigades, cutoff) {
   const from = `${cutoff.slice(0, 4)}-01-01`;
-  const active = state.sheets.PERSONAL.map(normalizePerson).filter(person => isYes(person.activo));
+  const active = state.sheets.PERSONAL.map(normalizeRow).filter(person =>
+    isYes(person.activo) && [person.apellido, person.nombre, person.bombero].some(value => String(value || '').trim())
+  );
   const metrics = new Map(brigades.map(brigade => [
     brigade.id_brigada,
     new Map(calcularAsistenciaPorPersona(brigade, from, cutoff).map(person => [person.key, person])),
@@ -2108,6 +2110,20 @@ function getActivePersonnelSummary(brigades, cutoff) {
 
 function drawActivePersonnelSummary(doc, brigades, cutoff) {
   const { noBrigade, noCompliance, pending } = getActivePersonnelSummary(brigades, cutoff);
+  const rowsPerPage = 31;
+  const pages = Math.max(1, Math.ceil(noBrigade.length / rowsPerPage), Math.ceil(noCompliance.length / rowsPerPage));
+  for (let page = 0; page < pages; page += 1) {
+    if (page) doc.addPage();
+    const start = page * rowsPerPage;
+    const end = start + rowsPerPage;
+    drawActivePersonnelPage(doc, cutoff, pending, page, pages, [
+      { title: 'Sin brigada', rows: noBrigade.slice(start, end), total: noBrigade.length, x: 30, showCount: false },
+      { title: 'Sin cumplimiento en ninguna brigada', rows: noCompliance.slice(start, end), total: noCompliance.length, x: 302, showCount: true },
+    ]);
+  }
+}
+
+function drawActivePersonnelPage(doc, cutoff, pending, page, pages, sections) {
   const text = (value, x, y, size = 10, color = '#19374b', bold = false, width = 0) => {
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
     doc.setFontSize(size);
@@ -2121,22 +2137,18 @@ function drawActivePersonnelSummary(doc, brigades, cutoff) {
   text('Cuerpo activo', 46, 77, 22, '#ffffff', true);
   text(`Del 01/01/${cutoff.slice(0, 4)} al ${formatDateDisplay(cutoff)}`, 46, 96, 10, '#ffffff');
 
-  const sections = [
-    { title: 'Sin brigada', rows: noBrigade, x: 30, showCount: false },
-    { title: 'Sin cumplimiento en ninguna brigada', rows: noCompliance, x: 302, showCount: true },
-  ];
-  const longest = Math.max(1, noBrigade.length, noCompliance.length);
-  const height = Math.min(19, 591 / longest);
-  const size = Math.min(9, height * 0.58);
-  sections.forEach(({ title, rows, x, showCount }) => {
+  if (pages > 1) text(`${page + 1} / ${pages}`, 511, 96, 10, '#ffffff');
+  const height = 19;
+  const size = 10;
+  sections.forEach(({ title, rows, total, x, showCount }) => {
     text(title, x, 136, 13, '#19374b', true, 263);
-    text(`${rows.length} personas`, x, 153);
+    text(`${total} personas`, x, 153);
     doc.setFillColor('#063452');
     doc.rect(x, 164, 263, 18, 'F');
     text('Apellido y nombre', x + 5, 176, 9, '#ffffff', true);
     text('Legajo', x + 183, 176, 9, '#ffffff', true);
     if (showCount) text('Brigadas', x + 220, 176, 9, '#ffffff', true);
-    if (!rows.length) text('Sin casos en el período.', x + 5, 198);
+    if (!rows.length) text(total ? 'Sin más casos.' : 'Sin casos en el período.', x + 5, 198);
     rows.forEach((row, i) => {
       const y = 182 + i * height;
       doc.setFillColor(i % 2 ? '#eef4f8' : '#f7f9fb');
