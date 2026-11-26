@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-ranking-completo-34';
+const APP_VERSION = 'brigadas-reporte-anual-35';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -107,6 +107,7 @@ function bindEvents() {
   });
   document.getElementById('exportCsvButton').addEventListener('click', exportAdminCsv);
   document.getElementById('exportAdminPdfButton').addEventListener('click', exportAdminPdf);
+  document.getElementById('exportAnnualBrigadesButton').addEventListener('click', exportAnnualBrigadesPdf);
   ['adminPeriodType', 'adminYear', 'adminMonth', 'adminBrigadeFilter', 'adminStateFilter', 'onlyMissingFilter', 'onlyHighFilter'].forEach((id) => {
     document.getElementById(id).addEventListener('change', renderAdmin);
   });
@@ -773,11 +774,11 @@ function meetingHasAttendance(meeting, attendanceRows) {
   );
 }
 
-function getBrigadeAnnualCompliance(idBrigada, year) {
+function getBrigadeAnnualCompliance(idBrigada, year, cutoff) {
   const numericYear = Number(year);
-  const now = new Date();
+  const now = cutoff ? parseDate(cutoff) : new Date();
   const expectedMonths = numericYear < now.getFullYear() ? 12 : numericYear === now.getFullYear() ? now.getMonth() + 1 : 0;
-  const from = `${year}-01-01`, to = `${year}-12-31`;
+  const from = `${year}-01-01`, to = cutoff || `${year}-12-31`;
   const meetings = getEncuentrosRango(from, to).filter((meeting) => meeting.id_brigada === idBrigada);
   const attendanceRows = getAttendanceRowsForBrigade(idBrigada, from, to);
   const details = (state.sheets.DETALLE_ASISTENCIAS || []).map(normalizeRow)
@@ -1533,14 +1534,7 @@ function renderAttendanceByPerson(from, to) {
 }
 
 function calcularAsistenciaPorPersona(brigade, from, to) {
-  const fromDate = parseDate(from);
-  const toDate = parseDate(to);
-  const assistanceIds = new Set((state.sheets.ASISTENCIAS || [])
-    .map(normalizeRow)
-    .filter((row) => {
-      const date = parseDate(row.fecha);
-      return row.id_brigada === brigade.id_brigada && date && date >= fromDate && date <= toDate;
-    })
+  const assistanceIds = new Set(getAttendanceRowsForBrigade(brigade.id_brigada, from, to)
     .map((row) => row.id_asistencia)
     .filter(Boolean));
   const totals = new Map();
@@ -1959,6 +1953,124 @@ async function exportAdminPdf() {
   } finally {
     setButtonLoading('exportAdminPdfButton', false);
   }
+}
+
+function exportAnnualBrigadesPdf() {
+  const jsPDF = window.jspdf?.jsPDF;
+  const brigades = getBrigadasActivas();
+  const required = ['CONFIG_BRIGADAS', 'PERSONAL', 'ENCUENTROS', 'ASISTENCIAS', 'DETALLE_ASISTENCIAS'];
+  if (!jsPDF || !brigades.length || !required.every(sheet => Array.isArray(state.sheets[sheet]))) {
+    showAppToast('El reporte necesita los datos completos. Recargá Google Sheets e intentá nuevamente.', 'warning');
+    return;
+  }
+
+  const date = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const parts = Object.fromEntries(date.map(part => [part.type, part.value]));
+  const cutoff = `${parts.year}-${parts.month}-${parts.day}`;
+  try {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    brigades.forEach((brigade, index) => {
+      if (index) doc.addPage();
+      drawAnnualBrigadePage(doc, brigade, cutoff);
+    });
+    doc.save(`reporte-brigadas-${parts.year}-al-${cutoff}.pdf`);
+  } catch (error) {
+    console.error('No se pudo generar el reporte anual', error);
+    showAppToast('No se pudo generar el reporte anual.', 'warning');
+  }
+}
+
+function drawAnnualBrigadePage(doc, brigade, cutoff) {
+  const year = cutoff.slice(0, 4);
+  const from = `${year}-01-01`;
+  const compliance = getBrigadeAnnualCompliance(brigade.id_brigada, year, cutoff);
+  const people = calcularAsistenciaPorPersona(brigade, from, cutoff)
+    .filter(person => person.total)
+    .sort((a, b) => b.presentes - a.presentes || a.nombre.localeCompare(b.nombre, 'es'));
+  const scores = [...new Set(people.map(person => person.presentes))].slice(0, 3);
+  const alerts = people.filter(person => person.presentes * 2 < person.total)
+    .sort((a, b) => a.presentes - b.presentes || a.nombre.localeCompare(b.nombre, 'es'));
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const text = (value, x, y, size = 10, color = '#19374b', bold = false) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(size);
+    doc.setTextColor(color);
+    doc.text(value, x, y);
+  };
+  const box = (x, y, width, height, color) => {
+    doc.setFillColor(color);
+    doc.roundedRect(x, y, width, height, 5, 5, 'F');
+  };
+
+  box(30, 30, 535, 78, '#063452');
+  text('SBVP / CUMPLIMIENTO Y ASISTENCIA', 46, 52, 10, '#d6e7f0', true);
+  text(brigade.nombre_brigada.trim(), 46, 77, 22, '#ffffff', true);
+  text(`Del 01/01/${year} al ${formatDateDisplay(cutoff)}`, 46, 96, 10, '#ffffff');
+  text('Encuentro mensual', 30, 136, 15, '#19374b', true);
+  text(`${compliance.completedMonths} de ${compliance.expectedMonths} meses cumplidos al corte`, 30, 152);
+  compliance.months.forEach((month, index) => {
+    const x = 30 + (index % 6) * 90;
+    const y = 163 + Math.floor(index / 6) * 39;
+    const status = !month.evaluated ? 'Fuera de corte' : month.compliant ? 'Cumplió' : 'No cumplió';
+    const fill = !month.evaluated ? '#eef2f5' : month.compliant ? '#e3f4eb' : '#fcece9';
+    box(x, y, 85, 34, fill);
+    text(months[index], x + 7, y + 13, 10, '#19374b', true);
+    text(status, x + 7, y + 26, 9);
+  });
+
+  text('Podio individual de asistencia', 30, 261, 15, '#19374b', true);
+  const records = people[0]?.total || compliance.attendanceRecords;
+  text(`Planillas registradas: ${records}`, 30, 278);
+  let y = 298;
+  doc.setFontSize(9);
+  if (!scores.length) {
+    text('Sin registros individuales para calcular el podio.', 30, y);
+    y += 17;
+  }
+  const podium = scores.map(score => {
+    const tied = people.filter(person => person.presentes === score);
+    const names = tied.map(person => person.nombre).join(' · ');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    return { percent: tied[0].porcentaje, lines: doc.splitTextToSize(names, 457), names };
+  });
+  const podiumLines = podium.reduce((count, row) => count + row.lines.length, 0);
+  const podiumSize = Math.min(9, 135 / Math.max(podiumLines, 1) / 1.2);
+  podium.forEach(({ percent, names }, index) => {
+    text(`${index + 1}.  ${percent}%`, 30, y, 10, '#19374b', true);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(podiumSize);
+    const lines = doc.splitTextToSize(names, 457);
+    text(lines, 102, y, podiumSize);
+    y += lines.length * podiumSize * 1.2 + 8;
+  });
+
+  y += 13;
+  text('Posible salida', 30, y, 15, '#892b25', true);
+  y += 17;
+  text(records ? `${alerts.length} personas con asistencia inferior al 50%` :
+    'Sin planillas registradas para evaluar la asistencia individual.', 30, y);
+  y += 13;
+  const rowHeight = Math.min(20, (758 - y) / Math.max(1, Math.ceil(alerts.length / 2)));
+  alerts.forEach((person, index) => {
+    const x = 30 + index % 2 * 270;
+    const top = y + Math.floor(index / 2) * rowHeight;
+    const size = Math.min(9, rowHeight * 0.54);
+    const position = top + rowHeight * 0.7;
+    box(x, top, 265, rowHeight - 1, '#fcece9');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(size);
+    const nameSize = Math.min(size, size * 143 / doc.getTextWidth(person.nombre));
+    text(person.nombre, x + 6, position, nameSize, '#19374b');
+    text(`${person.porcentaje}% (${person.presentes}/${person.total})`, x + 154, position, size, '#892b25');
+    text('Posible salida', x + 205, position, size, '#892b25', true);
+  });
+
+  text('Cumplió = encuentro mensual obligatorio realizado y con asistencia registrada.', 30, 781, 8);
+  text('Asistencia = presentes / planillas de la brigada. Las marcas faltantes cuentan como ausencias.', 30, 794, 8);
+  text('El podio incluye empates. El umbral del 50% se aplica antes de redondear.', 30, 807, 8);
 }
 
 function descargarIntegrantesBrigada() {
