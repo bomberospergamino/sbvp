@@ -1,6 +1,6 @@
 ﻿const ADMIN_PASSWORD = '1105';
 const GOOGLE_SHEET_ID = '1ZXYNwSNQjDOsISQLcc0bNGg5qR93j0WyXaY6dvhmXlk';
-const APP_VERSION = 'brigadas-reporte-anual-42';
+const APP_VERSION = 'brigadas-reporte-anual-43';
 const CALENDAR_SYNC_INTERVAL_MS = 30000;
 const GOOGLE_SHEET_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/export?format=xlsx`;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLv47WN0kWtizeiN4ssvq9F25v5xLw879lGAyxPhIROCjf5mv9z_LysiIqNBySfo3fVg/exec';
@@ -1980,6 +1980,7 @@ function exportAnnualBrigadesPdf() {
   const cutoff = `${parts.year}-${parts.month}-${parts.day}`;
   try {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    if (!doc.autoTable) throw new Error('No se pudo cargar el generador de tablas.');
     brigades.forEach((brigade, index) => {
       if (index) doc.addPage();
       drawAnnualBrigadePage(doc, brigade, cutoff);
@@ -1998,10 +1999,10 @@ function drawAnnualBrigadePage(doc, brigade, cutoff) {
   const from = `${year}-01-01`;
   const compliance = getBrigadeAnnualCompliance(brigade.id_brigada, year, cutoff);
   const people = calcularAsistenciaPorPersona(brigade, from, cutoff)
-    .filter(person => person.total)
-    .sort((a, b) => b.presentes / b.total - a.presentes / a.total || a.nombre.localeCompare(b.nombre, 'es'));
-  const scores = [...new Set(people.map(person => person.presentes / person.total))].slice(0, 3);
-  const alerts = people.filter(person => person.presentes * 2 < person.total);
+    .sort((a, b) => Number(Boolean(b.total)) - Number(Boolean(a.total)) ||
+      (b.total ? b.presentes / b.total : 0) - (a.total ? a.presentes / a.total : 0) ||
+      a.nombre.localeCompare(b.nombre, 'es'));
+  const alerts = people.filter(person => person.total && person.presentes * 2 < person.total);
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const text = (value, x, y, size = 10, color = '#19374b', bold = false) => {
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
@@ -2030,57 +2031,33 @@ function drawAnnualBrigadePage(doc, brigade, cutoff) {
     text(status, x + 7, y + 26, 9);
   });
 
-  text('Podio individual de asistencia', 30, 261, 15, '#19374b', true);
-  const records = compliance.attendanceRecords;
-  text(`Planillas registradas: ${records}`, 30, 278);
-  let y = 298;
-  doc.setFontSize(9);
-  if (!scores.length) {
-    text('Sin registros individuales para calcular el podio.', 30, y);
-    y += 17;
+  const table = (title, headers, rows, startY, fillColor) => doc.autoTable({
+    startY,
+    margin: { top: 35, right: 30, bottom: 42, left: 30 },
+    head: [[{ content: brigade.nombre_brigada.trim() + ' / ' + title, colSpan: headers.length }], headers],
+    body: rows.length ? rows : [[{ content: 'Sin integrantes para mostrar.', colSpan: headers.length }]],
+    styles: { fontSize: 9, cellPadding: 4 },
+    headStyles: { fillColor },
+    rowPageBreak: 'avoid',
+  });
+
+  text(`Planillas registradas: ${compliance.attendanceRecords}`, 30, 255);
+  let rank = 0;
+  let lastScore = null;
+  const podium = people.map(person => {
+    if (!person.total) return ['—', person.nombre, 'Sin registros', '—'];
+    const score = person.presentes / person.total;
+    if (score !== lastScore) rank += 1;
+    lastScore = score;
+    return [String(rank), person.nombre, `${person.porcentaje}%`, `${person.presentes}/${person.total}`];
+  });
+  table('Podio individual de asistencia', ['Puesto', 'Apellido y nombre', 'Asistencia', 'Presentes / encuentros'], podium, 265, [6, 52, 82]);
+  const alertRows = alerts.map(person => [person.nombre, `${person.porcentaje}%`, `${person.presentes}/${person.total}`, 'Posible salida']);
+  if (!alertRows.length) {
+    alertRows.push([{ content: people.some(person => person.total) ? 'Nadie por debajo del 50%.' : 'Sin planillas para evaluar.', colSpan: 4 }]);
   }
-  const podium = scores.map(score => {
-    const tied = people.filter(person => person.presentes / person.total === score);
-    const names = tied.map(person => person.nombre).join(' · ');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    return { percent: tied[0].porcentaje, lines: doc.splitTextToSize(names, 457), names };
-  });
-  const podiumLines = podium.reduce((count, row) => count + row.lines.length, 0);
-  const podiumSize = Math.min(9, 135 / Math.max(podiumLines, 1) / 1.2);
-  podium.forEach(({ percent, names }, index) => {
-    text(`${index + 1}.  ${percent}%`, 30, y, 10, '#19374b', true);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(podiumSize);
-    const lines = doc.splitTextToSize(names, 457);
-    text(lines, 102, y, podiumSize);
-    y += lines.length * podiumSize * 1.2 + 8;
-  });
-
-  y += 13;
-  text('Posible salida', 30, y, 15, '#892b25', true);
-  y += 17;
-  text(records ? `${alerts.length} personas con asistencia inferior al 50%` :
-    'Sin planillas registradas para evaluar la asistencia individual.', 30, y);
-  y += 13;
-  const rowHeight = Math.min(20, (758 - y) / Math.max(1, Math.ceil(alerts.length / 2)));
-  alerts.forEach((person, index) => {
-    const x = 30 + index % 2 * 270;
-    const top = y + Math.floor(index / 2) * rowHeight;
-    const size = Math.min(9, rowHeight * 0.54);
-    const position = top + rowHeight * 0.7;
-    box(x, top, 265, rowHeight - 1, '#fcece9');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(size);
-    const nameSize = Math.min(size, size * 143 / doc.getTextWidth(person.nombre));
-    text(person.nombre, x + 6, position, nameSize, '#19374b');
-    text(`${person.porcentaje}% (${person.presentes}/${person.total})`, x + 154, position, size, '#892b25');
-    text('Posible salida', x + 205, position, size, '#892b25', true);
-  });
-
-  text('Cumplió = encuentro mensual obligatorio realizado y con asistencia registrada.', 30, 781, 8);
-  text('Asistencia = presentes / planillas de la brigada. Las marcas faltantes cuentan como ausencias.', 30, 794, 8);
-  text('El podio incluye empates. El umbral del 50% se aplica antes de redondear.', 30, 807, 8);
+  table('Posible salida', ['Apellido y nombre', 'Asistencia', 'Presentes / encuentros', 'Estado'],
+    alertRows, doc.lastAutoTable.finalY + 12, [137, 43, 37]);
 }
 
 function getActivePersonnelSummary(brigades, cutoff) {
