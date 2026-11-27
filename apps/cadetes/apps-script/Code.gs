@@ -70,6 +70,8 @@ function guardarAsistencia(datos) {
   const bloqueo = LockService.getScriptLock();
   bloqueo.waitLock(15000);
   try {
+    const registro = obtenerRegistroAsistencia_();
+    const siguienteFila = registro.getLastRow() + 1;
     const raiz = DriveApp.getFolderById(CARPETA_ASISTENCIA_ID);
     const carpetas = raiz.getFoldersByName(anio);
     const carpeta = carpetas.hasNext() ? carpetas.next() : raiz.createFolder(anio);
@@ -77,10 +79,43 @@ function guardarAsistencia(datos) {
       throw new Error('Ya existe un PDF con esa fecha, nivel y tema. Revisá la carpeta antes de volver a enviar.');
     }
     const archivo = carpeta.createFile(pdf.setName(nombre));
-    return { nombre, url: archivo.getUrl() };
+    const url = archivo.getUrl();
+    const fechaClase = Utilities.parseDate(fecha, ZONA_HORARIA, 'yyyy-MM-dd');
+    const registrado = new Date();
+    const registros = padron.map((persona, i) => [
+      fechaClase, Number(nivel), textoRegistro_(persona.nombre), datos.marcas[i].estado,
+      textoRegistro_(tema), textoRegistro_(responsables), archivo.getId(), url, registrado,
+    ]);
+    try {
+      registro.getRange(siguienteFila, 1, registros.length, registros[0].length).setValues(registros);
+      SpreadsheetApp.flush();
+    } catch (error) {
+      throw new Error('Se guardó el PDF, pero no se pudo confirmar el registro en Sheets. Revisá ' + nombre + ' antes de reenviar.');
+    }
+    return { nombre, url };
   } finally {
     bloqueo.releaseLock();
   }
+}
+
+function obtenerRegistroAsistencia_() {
+  const libro = SpreadsheetApp.openById(PADRON_ID);
+  const hoja = libro.getSheetByName('Asistencias') || libro.insertSheet('Asistencias', 1);
+  const encabezados = ['Fecha', 'Nivel', 'Cadete', 'Estado', 'Tema', 'Responsables', 'ID PDF', 'PDF', 'Registrado el'];
+  const primeraFila = hoja.getRange(1, 1, 1, encabezados.length);
+  if (!hoja.getLastRow()) {
+    primeraFila.setValues([encabezados]).setFontWeight('bold');
+    hoja.setFrozenRows(1);
+    hoja.getRange('A:A').setNumberFormat('dd/mm/yyyy');
+    hoja.getRange('I:I').setNumberFormat('dd/mm/yyyy hh:mm');
+  } else if (primeraFila.getDisplayValues()[0].join('|') !== encabezados.join('|')) {
+    throw new Error('La pestaña Asistencias tiene otros encabezados. Revisala antes de guardar.');
+  }
+  return hoja;
+}
+
+function textoRegistro_(valor) {
+  return valor.startsWith('=') ? "'" + valor : valor;
 }
 
 function validarNivel_(nivel) {
